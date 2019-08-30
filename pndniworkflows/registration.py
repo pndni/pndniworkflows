@@ -1,10 +1,12 @@
-from nipype.pipeline import engine as pe
 from nipype.interfaces.ants.registration import Registration
-from nipype.interfaces.utility import IdentityInterface
 
 
 def ants_registration_syn_node(**kwargs):
-    """return antsRegistration interace instance with default values based on antsRegistrationSyN.sh with the s transformation option
+    """return antsRegistration interace instance with default values
+    based on antsRegistrationSyN.sh with the s transformation option
+
+    :param \*\*kwargs: parameters to override the default values
+    :return: :py:obj:`Registration` node
     """
     defaults = dict(dimension=3,
                     use_histogram_matching=False,
@@ -33,9 +35,12 @@ def ants_registration_syn_node(**kwargs):
     return ants
 
 
-
 def ants_registration_affine_node(**kwargs):
-    """return antsRegistration interace instance with default values based on antsRegistrationSyN.sh with the a transformation option
+    """return antsRegistration interace instance with default values
+    based on antsRegistrationSyN.sh with the a transformation option
+
+    :param \*\*kwargs: parameters to override the default values
+    :return: :py:obj:`Registration` node
     """
     defaults = dict(dimension=3,
                     use_histogram_matching=False,
