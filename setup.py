@@ -17,4 +17,7 @@ setup(
         'doc': ['Sphinx', 'sphinx-argparse', 'sphinx-rtd-theme']
     },
     packages=find_packages(),
+    package_data={
+        '': ['templates/*tpl'],
+    },
 )
