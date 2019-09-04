@@ -50,28 +50,28 @@ def cutimage(T1, points):
     out.to_filename(outname)
     return outname
 
-    
+
 def neck_removal_wf():
     """Create a workflow to to remove the neck. This workflow requires a
     model image (e.g. an MNI standard) and points on that image. The model
     is registered to the T1 image, and the points transformed into T1 space.
-    The inferior most 
+    The inferior most
 
     :return: A :py:mod:`nipype` workflow
-    
+
     Workflow inputs/outputs
 
     :param inputspec.T1: The T1 image to remove the neck from
     :param inputspec.model: The reference image to register to the T1 image
     :param inputspec.limits: Points in model roughly indicating the ideal cutting plane
-    :return: A :py:mod:`nipype` node 
+    :return: A :py:mod:`nipype` node
 
     """
     wf = pe.Workflow('neck_removal')
     inputspec = pe.Node(IdentityInterface(['T1', 'model', 'limits']), name='inputspec')
-    reg = pe.Node(ants_registration_affine_node(write_composite_transform=False), name='reg')
-    wpoints = pe.Node(Function(input_names=['limits'], output_names=['points'], function=writepoints), name='wpoints')
-    trpoints = pe.Node(ApplyTransformsToPoints(dimension=3), name='trpoints')
+    reg = pe.Node(ants_registration_affine_node(write_composite_transform=False), name='register')
+    wpoints = pe.Node(Function(input_names=['limits'], output_names=['points'], function=writepoints), name='write_points')
+    trpoints = pe.Node(ApplyTransformsToPoints(dimension=3), name='transform_points')
     cut = pe.Node(Function(input_names=['T1', 'points'], output_names=['noneck'], function=cutimage), name='cut')
     outputspec = pe.Node(IdentityInterface(['noneck']), name='outputspec')
     wf.connect([(inputspec, reg, [('T1', 'moving_image'),

@@ -1,12 +1,9 @@
 from nipype.pipeline import engine as pe
-from nipype import IdentityInterface, Function
+from nipype import IdentityInterface
 from nipype.interfaces.fsl import ImageStats
 from collections import namedtuple
-import csv
-from pathlib import Path
 from . import utils
 from .interfaces.io import WriteTSV
-from itertools import product
 
 
 StatDesc = namedtuple('StatDesc', ['flag', 'names'])
@@ -26,7 +23,7 @@ STATS = {'robustminmax': StatDesc('-r', ['robust_min', 'robust_max']),
 
 def image_stats_wf(stat_keys, labels, name):
     """Create a workflow to calculate image statistics using fslstats
-    
+
     :param stat_keys: list of keys indicating which statistics to calculate.
                       Can be any of the keys of :py:const:`pndniworkflows.postprocessing.STATS`.
     :param labels: :py:class:`list` of :py:class:`OrderedDict`, one for each label. Each
@@ -35,9 +32,9 @@ def image_stats_wf(stat_keys, labels, name):
     :param name: The name of the workflow
 
     :return: A :py:mod:`nipype` workflow
-    
+
     Workflow inputs/outputs
-    
+
     :param inputspec.in_file: file on which to compute statistics
     :param inputspec.index_mask_file: label file indicating the ROIs of
                                       in_file in which to compute
