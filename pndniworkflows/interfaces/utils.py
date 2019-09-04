@@ -4,6 +4,9 @@ from nipype.interfaces.base import (traits,
                                     BaseInterface,
                                     BaseInterfaceInputSpec)
 from nipype.algorithms.misc import Gunzip
+import csv
+import re
+import os
 
 
 class ItemInputSpec(BaseInterfaceInputSpec):
@@ -114,7 +117,7 @@ class DictToStringOutputSpec(TraitedSpec):
 
 class DictToString(BaseInterface):
     """Equivalent to
-    
+
     .. code-block:: python
 
        '_'.join(('{}-{}'.format(keyval, dictionary[key])
@@ -135,12 +138,12 @@ class DictToString(BaseInterface):
         outputs = self.output_spec().get()
         outputs['out'] = self.__out_str_tmp
         return outputs
-# 
-# 
+#
+#
 # class NiftiTypeInputSpec(BaseInterfaceInputSpec):
 #     in_file = File(exists=True)
-# 
-# 
+#
+#
 # class NiftiTypeOutputSpec(TraitedSpec):
 #     write_byte = traits.Bool()
 #     write_short = traits.Bool()
@@ -149,8 +152,8 @@ class DictToString(BaseInterface):
 #     write_double = traits.Bool()
 #     write_signed = traits.Bool()
 #     write_unsigned = traits.Bool()
-# 
-# 
+#
+#
 # class NiftyType(BaseInterface):
 #     input_spec = NiftiTypeInputSpec
 #     output_spec = NiftiTypeOutputSpec
@@ -159,7 +162,7 @@ class DictToString(BaseInterface):
 #                'i': 'write_int',
 #                'f': 'write_float',
 #                'd': 'write_double'}
-# 
+#
 #     def _run_interface(self, runtime):
 #         t = nibabel.load(self.inputs.in_file).get_data_dtype()
 #         out = self._outputs().get()
@@ -172,7 +175,7 @@ class DictToString(BaseInterface):
 #         out[self.typemap[t.char.lower()]] = True
 #         self.__output_type_flags = out
 #         return runtime
-# 
+#
 #     def _list_outputs(self):
 #         return self.__output_type_flags
 
@@ -247,7 +250,7 @@ class Ants2MincPointsInputSpec(BaseInterfaceInputSpec):
 
 class Ants2MincPointsOutputSpec(TraitedSpec):
     out_file = File(exists=True,
-                   desc='`Format reference <https://en.wikibooks.org/wiki/MINC/SoftwareDevelopment/Tag_file_format_reference>`_')
+                    desc='`Format reference <https://en.wikibooks.org/wiki/MINC/SoftwareDevelopment/Tag_file_format_reference>`_')
 
 
 class Ants2MincPoints(BaseInterface):
