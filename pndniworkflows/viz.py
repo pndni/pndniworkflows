@@ -230,8 +230,8 @@ def distributions(name, distfile, out_file, labelmap=None, form=True):
     :param name: Name describing :py:obj:`distfile`
     :type name: str
     :param image: Distribution file name.
-                  Must be a comma-separated file with two columns and no heading. 
-                  The first column is a point in distribution, and the second 
+                  Must be a comma-separated file with two columns and no heading.
+                  The first column is a point in distribution, and the second
                   is an integer indicating which distribution it belongs to.
     :type image: path-like object
     :param out_file: File name
