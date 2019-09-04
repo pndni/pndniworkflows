@@ -35,6 +35,7 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx_rtd_theme',
     'pndniworkflows.sphinxext.interfaces',
+    'nipype.sphinxext.plot_workflow',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
