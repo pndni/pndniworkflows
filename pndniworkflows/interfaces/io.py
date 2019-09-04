@@ -98,35 +98,35 @@ class WriteTSVOutputSpec(TraitedSpec):
 
 class WriteTSV(BaseInterface):
     """Write a list of data to a TSV file. Designed to be used with ImageStats
-    
+
     Example:
 
     >>> write = WriteTSV(statnames=['mean', 'std'], labels={1: 'GM', 2: 'WM'}, data=[1, 2, 3, 4])
     >>> r = write.run()
 
     Will produce :py:obj:`r.outputs.out_tsv` containing
-    
+
     ===== ==== ==== ===
     index name mean std
     ===== ==== ==== ===
     1     GM   1    2
     2     WM   3    4
     ===== ==== ==== ===
-    
+
     If not all labels are specified, then the corresponding data must be zero.
 
     >>> write = WriteTSV(statnames=['mean', 'std'], labels={1: 'GM', 3: 'CSF'}, data=[1, 2, 0, 0, 3, 4])
     >>> r = write.run()
 
     Will produce :py:obj:`r.outputs.out_tsv` containing
-    
+
     ===== ==== ==== ===
     index name mean std
     ===== ==== ==== ===
     1     GM   1    2
     3     CSF  3    4
     ===== ==== ==== ===
-    
+
     However, the following will fail
 
     >>> write = WriteTSV(statnames=['mean', 'std'], labels={1: 'GM', 3: 'CSF'}, data=[1, 2, 3, 4])

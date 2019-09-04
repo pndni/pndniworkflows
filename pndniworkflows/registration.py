@@ -5,7 +5,7 @@ def ants_registration_syn_node(**kwargs):
     """return antsRegistration interace instance with default values
     based on antsRegistrationSyN.sh with the s transformation option
 
-    :param \*\*kwargs: parameters to override the default values
+    :param \\*\\*kwargs: parameters to override the default values
     :return: :py:obj:`Registration` node
     """
     defaults = dict(dimension=3,
@@ -39,7 +39,7 @@ def ants_registration_affine_node(**kwargs):
     """return antsRegistration interace instance with default values
     based on antsRegistrationSyN.sh with the a transformation option
 
-    :param \*\*kwargs: parameters to override the default values
+    :param \\*\\*kwargs: parameters to override the default values
     :return: :py:obj:`Registration` node
     """
     defaults = dict(dimension=3,

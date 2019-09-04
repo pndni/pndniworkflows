@@ -25,7 +25,7 @@ def cutimage(T1, points):
     ind = np.argmax(np.abs(aff[2, :3]))
     inf_to_sup = aff[2, ind] >= 0
     with open(points, 'r') as f:
-        l = f.readline()
+        l = f.readline()  # noqa: [E741]
         assert l.strip() == 'x,y,z,t'
         # flip because ants/ITK uses LPS
         points = []

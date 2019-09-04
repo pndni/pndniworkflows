@@ -36,10 +36,10 @@ def get_subjects_node(bids_dir, subject_list=None):
     Returns a node with an iterable field "subject" containing a list of subjects,
     which can either be passed in "subject_list" or
     acquired using :py:class:`BIDSLayout` from :py:mod:`pybids`
-    
+
     :param bids_dir: bids directory to search
     :param subject_list: *optional* list of subjects (instead of searching with :py:class:`BIDSLayout`)
-    :return: A :py:mod:`nipype` node 
+    :return: A :py:mod:`nipype` node
     """
     subjects = pe.Node(IdentityInterface(fields=['subject']), name='subjects')
     if subject_list is None:
@@ -53,8 +53,8 @@ def write_dataset_description(bids_dir, **kwargs):
     Write a minimal dataset_description.json
 
     :param bids_dir: dataset_description.json will be written at the root of this directory
-    :param \*\*kwargs: parameters to be written to dataset_description.json. Must include
-                       "Name" and "BIDSVersion"
+    :param \\*\\*kwargs: parameters to be written to dataset_description.json. Must include
+                         "Name" and "BIDSVersion"
     """
     for key in ['Name', 'BIDSVersion']:
         if key not in kwargs.keys():
@@ -91,11 +91,11 @@ def read_labels(labelfile):
 def labels2dict(labels, key_to_extract):
     """
     Create a dictionary from a labels list
-    
+
     :param labels: :py:obj:`list` of :py:obj:`dict` where each dict contains the keys "index" and key_to_extract
     :param key_to_extract: the key in labels to map to the output dictionary value
     :result: a dictionary indexed by the labels "index" with values given by the labels :py:obj:`key_to_extract`
-    
+
     :Example:
 
     .. doctest::
@@ -142,15 +142,15 @@ def combine_labels(*args):
     """Combine results from read_labels into a single label map,
     using the same logic as :py:mod:`pndni.combinelabels` in :py:mod:`pndni_utils`
 
-    :param \*args: any number of labels, each :py:obj:`list` of :py:obj:`dict`.
-                   Each dict must contain "index" and "name" keys, where
-                   the values of "index" or :py:obj:`int`, and the values are unique
-                   for a given list (e.g., a labels list cannot contain multiple entries
-                   with the same index).
+    :param \\*args: any number of labels, each :py:obj:`list` of :py:obj:`dict`.
+                    Each dict must contain "index" and "name" keys, where
+                    the values of "index" or :py:obj:`int`, and the values are unique
+                    for a given list (e.g., a labels list cannot contain multiple entries
+                    with the same index).
     :result: :py:obj:`list` of :py:obj:`dict` of combined labels.
 
     :Example:
-    
+
     .. doctest::
 
        >>> from pndniworkflows.utils import combine_labels
@@ -215,7 +215,7 @@ def chunk(iterable, chunksize):
     :return: iterator
     :raises: RuntimeError if iterable is exhausted with some elements not yielded as lists
              (i.e. if the length of the iterable is not divisible by chunksize)
-    
+
     :Example:
 
     .. doctest::
@@ -223,7 +223,7 @@ def chunk(iterable, chunksize):
        >>> from pndniworkflows.utils import chunk
        >>> list(chunk(range(9), 3))
        [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-    
+
     """
     out = []
     for x in iterable:
@@ -261,9 +261,9 @@ def combine_stats_files(bids_dir, validate, row_keys, invariants, outfile, stric
     For example, if ``row_keys == ('subject',)`` then each row is a unqiue subject,
     if ``row_keys == ('subject', 'acquisition')`` then each row is a unique subject,
     acquisition combination, etc.
-    
+
     if strict, every key in get_entities must be accounted for, either in row_keys or invariants (excluding "suffix")
-    
+
     :param bids_dir: bids directory to search
     :param validate: validate bids directory (passed directly to :py:class:`BIDSLayout`
     :param row_keys: list of keys (bids parameters) to uniquely determine a row_key
@@ -273,11 +273,11 @@ def combine_stats_files(bids_dir, validate, row_keys, invariants, outfile, stric
                    raise :py:class:`UnaccountedBidsPropertiesError`)
     :param index: passed to :py:func:`tsv_to_flat_dict`, is the key used to determine the row names of the input stats files
     :param ignore: passed to :py:func:`tsv_to_flat_dict`, container of keys to ignore while reading stats file
-    
+
     :raises: :py:class:`UnaccountedBidsPropertiesError`, :py:class:`InvariantViolationError`, :py:class:`ColumnExistsError`
-    
+
     :Example:
-    
+
     Given a bids directory structure with::
 
         bids_dir
@@ -291,7 +291,7 @@ def combine_stats_files(bids_dir, validate, row_keys, invariants, outfile, stric
               └──sub-2_acq-1_stats.tsv
 
     with ``sub-1_stats.tsv``:
-        
+
     ===== ==== ====== ====
     index name volume mean
     ===== ==== ====== ====
@@ -300,7 +300,7 @@ def combine_stats_files(bids_dir, validate, row_keys, invariants, outfile, stric
     ===== ==== ====== ====
 
     with ``sub-2_stats.tsv``:
-        
+
     ===== ==== ====== ====
     index name volume mean
     ===== ==== ====== ====
@@ -309,7 +309,7 @@ def combine_stats_files(bids_dir, validate, row_keys, invariants, outfile, stric
     ===== ==== ====== ====
 
     with ``sub-1_acq-1_stats.tsv``:
-        
+
     ===== ==== ====== ====
     index name volume mean
     ===== ==== ====== ====
@@ -327,7 +327,7 @@ def combine_stats_files(bids_dir, validate, row_keys, invariants, outfile, stric
                                index='name', ignore=['index'])
 
     produces ``sub-1_acq-1_stats.tsv``:
-    
+
     ======= =========== ========= ======= ========= =======
     subject acquisition GM_volume GM_mean WM_volume WM_mean
     ======= =========== ========= ======= ========= =======
@@ -335,7 +335,7 @@ def combine_stats_files(bids_dir, validate, row_keys, invariants, outfile, stric
     2                   11        19.0    6         31.0
     2       1           8         25.0    4         40.0
     ======= =========== ========= ======= ========= =======
-                           
+
     """
     bids = BIDSLayout(bids_dir, validate=validate)
     out = defaultdict(OrderedDict)
@@ -384,9 +384,9 @@ def tsv_to_flat_dict(tsvfile, index=None, ignore=None):
     :param ignore: container of column names to ignore
     :return: :py:obj:`OrderedDict` with keys given by rowname_colname, where rowname is
              the table item in the column given by index
-    
+
     :Examples:
-    
+
     :py:obj:`tsvfile` contents
 
     ==== ==== ==== ====
@@ -395,7 +395,7 @@ def tsv_to_flat_dict(tsvfile, index=None, ignore=None):
     a    1    2    3
     b    4    5    6
     ==== ==== ==== ====
-    
+
     .. testsetup::
 
        import tempfile
@@ -417,17 +417,16 @@ def tsv_to_flat_dict(tsvfile, index=None, ignore=None):
        OrderedDict([('1_col1', 'a'), ('1_col3', '2'), ('4_col1', 'b'), ('4_col3', '5')])
 
     .. testcleanup::
-    
+
        import os
        os.remove(tsvfile)
-       
-       
+
+
     """
     out = OrderedDict()
     with open(tsvfile, 'r') as f:
         reader = csv.reader(f, delimiter='\t')
         header = next(reader)
-        colinds = list(range(len(header)))
         if index is not None:
             index_ind = header.index(index)
         else:

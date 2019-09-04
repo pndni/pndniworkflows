@@ -9,22 +9,22 @@ def _insert(list_, ind, x):
 
 
 def _writespec(lines, ind, heading, spec):
-        _insert(lines, ind, '')
-        _insert(lines, ind, heading)
-        _insert(lines, ind, '')
-        if isinstance(spec, CommandLineInputSpec):
-            ignorelist = ['args', 'environ']
-        else:
-            ignorelist = []
-        for t in spec.visible_traits():
-            if t in ignorelist:
-                continue
-            _insert(lines, ind, ':param {}: {}'.format(t, spec.trait(t).desc))
-            _insert(lines, ind, ':type {}: {}'.format(t, spec.trait(t).info()))
+    _insert(lines, ind, '')
+    _insert(lines, ind, heading)
+    _insert(lines, ind, '')
+    if isinstance(spec, CommandLineInputSpec):
+        ignorelist = ['args', 'environ']
+    else:
+        ignorelist = []
+    for t in spec.visible_traits():
+        if t in ignorelist:
+            continue
+        _insert(lines, ind, ':param {}: {}'.format(t, spec.trait(t).desc))
+        _insert(lines, ind, ':type {}: {}'.format(t, spec.trait(t).info()))
 
 
 def proc_docstring(app, what, name, obj, options, lines):
-        
+
     if hasattr(obj, 'input_spec'):
         for i, l in enumerate(lines):
             if 'Example:' == l.strip():

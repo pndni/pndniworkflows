@@ -3,7 +3,7 @@
 Note that many of these interfaces do not expose all command line options.
 
 Some argument descriptions are copied from the minc help, and as such is
-Copyright the MINC developers, McConnell Brain Imaging Centre, 
+Copyright the MINC developers, McConnell Brain Imaging Centre,
 Montreal Neurological Institute, McGill University.
 """
 from nipype.interfaces.base import (CommandLine,
@@ -119,7 +119,6 @@ class NUCorrectOutputSpec(TraitedSpec):
 
 class NUCorrect(CommandLine):
     """Interface to nu_correct"""
-
 
     input_spec = NUCorrectInputSpec
     output_spec = NUCorrectOutputSpec
