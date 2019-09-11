@@ -83,7 +83,7 @@ class WriteBIDSFile(BaseInterface):
         return outputs
 
 
-class WriteTSVInputSpec(BaseInterfaceInputSpec):
+class WriteFSLStatsInputSpec(BaseInterfaceInputSpec):
     statnames = traits.List(trait=traits.Str(), mandatory=True, desc='list of column names')
     labels = traits.Dict(key_trait=traits.Int(), value_trait=traits.Str(), mandatory=True,
                          desc='dictionary mapping indexes to label names')
@@ -92,16 +92,16 @@ class WriteTSVInputSpec(BaseInterfaceInputSpec):
                                             'Each element corresponds to a statname/label combination.')
 
 
-class WriteTSVOutputSpec(TraitedSpec):
+class WriteFSLStatsOutputSpec(TraitedSpec):
     out_tsv = traits.File(exists=True)
 
 
-class WriteTSV(BaseInterface):
+class WriteFSLStats(BaseInterface):
     """Write a list of data to a TSV file. Designed to be used with ImageStats
 
     Example:
 
-    >>> write = WriteTSV(statnames=['mean', 'std'], labels={1: 'GM', 2: 'WM'}, data=[1, 2, 3, 4])
+    >>> write = WriteFSLStats(statnames=['mean', 'std'], labels={1: 'GM', 2: 'WM'}, data=[1, 2, 3, 4])
     >>> r = write.run()
 
     Will produce :py:obj:`r.outputs.out_tsv` containing
@@ -115,7 +115,7 @@ class WriteTSV(BaseInterface):
 
     If not all labels are specified, then the corresponding data must be zero.
 
-    >>> write = WriteTSV(statnames=['mean', 'std'], labels={1: 'GM', 3: 'CSF'}, data=[1, 2, 0, 0, 3, 4])
+    >>> write = WriteFSLStats(statnames=['mean', 'std'], labels={1: 'GM', 3: 'CSF'}, data=[1, 2, 0, 0, 3, 4])
     >>> r = write.run()
 
     Will produce :py:obj:`r.outputs.out_tsv` containing
@@ -129,13 +129,13 @@ class WriteTSV(BaseInterface):
 
     However, the following will fail
 
-    >>> write = WriteTSV(statnames=['mean', 'std'], labels={1: 'GM', 3: 'CSF'}, data=[1, 2, 3, 4])
+    >>> write = WriteFSLStats(statnames=['mean', 'std'], labels={1: 'GM', 3: 'CSF'}, data=[1, 2, 3, 4])
     >>> r = write.run()
 
     """
 
-    input_spec = WriteTSVInputSpec
-    output_spec = WriteTSVOutputSpec
+    input_spec = WriteFSLStatsInputSpec
+    output_spec = WriteFSLStatsOutputSpec
 
     def _run_interface(self, runtime):
         outfile = Path('out.tsv')

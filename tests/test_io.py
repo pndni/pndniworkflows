@@ -1,4 +1,4 @@
-from pndniworkflows.interfaces.io import WriteTSV, WriteBIDSFile
+from pndniworkflows.interfaces.io import WriteFSLStats, WriteBIDSFile
 import pytest
 import os
 import csv
@@ -63,7 +63,7 @@ def test_write_tsv(cdtmppath):
     stats = ['s1', 's2', 's3']
     labels = {1: 'l1', 3: 'l3'}
     data = [1., 2., 3., 0., 0., 0., 7., 8., 9.]
-    w = WriteTSV()
+    w = WriteFSLStats()
     w.inputs.statnames = stats
     w.inputs.labels = labels
     w.inputs.data = data
@@ -83,7 +83,7 @@ def test_write_tsv_fail(cdtmppath):
     stats = ['s1', 's2', 's3']
     labels = {1: 'l1', 3: 'l3'}
     data = [1, 2, 3, 1, 0, 0, 7, 8, 9]
-    w = WriteTSV()
+    w = WriteFSLStats()
     w.inputs.statnames = stats
     w.inputs.labels = labels
     w.inputs.data = data
@@ -95,7 +95,7 @@ def test_write_tsv_docstr(cdtmppath):
     stats = ['mean', 'std']
     labels = {1: 'GM', 2: 'WM'}
     data = [1, 2, 3, 4]
-    w = WriteTSV()
+    w = WriteFSLStats()
     w.inputs.statnames = stats
     w.inputs.labels = labels
     w.inputs.data = data
@@ -107,7 +107,7 @@ def test_write_tsv_docstr2(cdtmppath):
     stats = ['mean', 'std']
     labels = {1: 'GM', 3: 'CSF'}
     data = [1, 2, 0, 0, 3, 4]
-    w = WriteTSV()
+    w = WriteFSLStats()
     w.inputs.statnames = stats
     w.inputs.labels = labels
     w.inputs.data = data
@@ -119,7 +119,7 @@ def test_write_tsv_docstr3(cdtmppath):
     stats = ['mean', 'std']
     labels = {1: 'GM', 3: 'CSF'}
     data = [1, 2, 3, 4]
-    w = WriteTSV()
+    w = WriteFSLStats()
     w.inputs.statnames = stats
     w.inputs.labels = labels
     w.inputs.data = data
