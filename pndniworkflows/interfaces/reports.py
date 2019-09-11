@@ -184,7 +184,7 @@ class ReportletDistributions(BaseInterface):
 
 
 class ReportletCrashInputSpec(BaseInterfaceInputSpec):
-    name = traits.Str(mandatory=True, desc='Name of distributions')
+    name = traits.Str(mandatory=True, desc='Name of reportlet')
     crashfiles = traits.List(File(exists=True, mandatory=True),
                              desc='List of nipype crash files (can be empty)')
     relative_dir = Directory(exists=True, desc='Create links to filenames relative to this directory')
@@ -220,7 +220,8 @@ class ReportletCrash(BaseInterface):
 
 
 class AssembleReportInputSpec(BaseInterfaceInputSpec):
-    in_files = InputMultiPath(File(exists=True), mandatory=True)
+    in_files = InputMultiPath(File(exists=True), mandatory=True,
+                              desc='Reportlet files')
     title = traits.Str(mandatory=True, desc='Title of final report')
     out_file = File(desc='Output file')
 
@@ -251,8 +252,10 @@ class AssembleReport(BaseInterface):
 
 
 class IndexReportInputSpec(BaseInterfaceInputSpec):
-    in_files = InputMultiPath(File(exists=True), mandatory=True)
-    out_file = File(mandatory=True)
+    in_files = InputMultiPath(File(exists=True), mandatory=True,
+                              desc='QC pages')
+    out_file = File(mandatory=True,
+                    desc='Name of output index file')
 
 
 class IndexReportOutputSpec(TraitedSpec):

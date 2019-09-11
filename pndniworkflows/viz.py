@@ -85,6 +85,8 @@ def _imshow(imgfile, nslices, labelfile=None):
     img = _load_and_orient(imgfile)
     if labelfile is not None:
         label = _load_and_orient(labelfile)
+        if label.shape != img.shape:
+            raise RuntimeError('label shape does not match image shape')
         labelvals = list(np.unique(np.asarray(label.dataobj)))
         if 0 in labelvals:
             labelvals.pop(labelvals.index(0))
@@ -165,7 +167,7 @@ def single(name, image, out_file, nslices=7, form=True, relative_dir=None):
     :param name: Name describing :py:obj:`image`
     :type name: str
     :param image: Image file name to show (readable by :py:mod:`nibabel`)
-    :type image: path-like object
+    :type image: path-like object or :py:obj:`None`
     :param out_file: File name
     :type out_file: path-like object
     :param nslices: Number of slices to show in each plane
@@ -190,11 +192,11 @@ def compare(name1, image1, name2, image2, out_file, nslices=7, form=True, relati
     :param name1: Name describing :py:obj:`image1`
     :type name1: str
     :param image1: Image file name to show (readable by :py:mod:`nibabel`)
-    :type image1: path-like object
+    :type image1: path-like object or :py:obj:`None`
     :param name2: Name describing :py:obj:`image2`
     :type name2: str
     :param image2: Image file name to show (readable by :py:mod:`nibabel`)
-    :type image2: path-like object
+    :type image2: path-like object or :py:obj:`None`
     :param out_file: File name
     :type out_file: path-like object
     :param nslices: Number of slices to show in each plane
@@ -241,9 +243,9 @@ def contours(name, image, label, out_file, nslices=7, form=True, relative_dir=No
     :param name: Name describing :py:obj:`image`
     :type name: str
     :param image: Image file name to show (readable by :py:mod:`nibabel`)
-    :type image: path-like object
+    :type image: path-like object or :py:obj:`None`
     :param label: Label file name to draw contours from (readable by :py:mod:`nibabel`)
-    :type label: str
+    :type label: path-like object or :py:obj:`None`
     :param out_file: File name
     :type out_file: path-like object
     :param nslices: Number of slices to show in each plane
@@ -285,13 +287,13 @@ def distributions(name, distfile, out_file, labelfile, form=True, relative_dir=N
                      Must be a comma-separated file with two columns and no heading.
                      The first column is a point in distribution, and the second
                      is an integer indicating which distribution it belongs to.
-    :type distfile: path-like object
+    :type distfile: path-like object or :py:obj:`None`
     :param out_file: File name
     :type out_file: path-like object
     :param labelfile: TSV file containing "index" and "name" columns. Used to label
                       distributions. ("index" corresponds to the second column in
                       distfile)
-    :type labelfile: path-like object
+    :type labelfile: path-like object or :py:obj:`None`
     :param form: Include a QC form in the output
     :type form: bool
     :param relative_dir: Create links to filenames relative to this directory
@@ -334,6 +336,18 @@ def plotdists(dists, labelmap=None, bins=20, alpha=0.5):
 
 
 def crash(name, crashfiles, out_file, relative_dir=None):
+    """Write an html file to :py:obj:`out_file` with crashfile information.
+
+    :param name: Name describing the reportlet
+    :type name: str
+    :param crashfiles: Files of a type readable by :py:obj:`nipype.utils.filemanip.loadcrash`.
+                       An empty list indicates no crash files, and therefore success.
+    :type crashfiles: list
+    :param out_file: File name
+    :type out_file: path-like object
+    :param relative_dir: Create links to filenames relative to this directory
+    :type relative_dir: path-like object
+    """
     out = {'name': name,
            'name_no_spaces': name.replace(' ', '_'),
            'crashes': []}

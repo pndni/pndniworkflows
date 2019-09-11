@@ -207,3 +207,34 @@ class CombineStats(BaseInterface):
         outputs = self.output_spec().get()
         outputs['out_tsv'] = self.__out_tsv_tmp
         return outputs
+
+
+class WriteFileInputSpec(BaseInterfaceInputSpec):
+    string = traits.Str(mandatory=True)
+    out_file = File()
+
+
+class WriteFileOutputSpec(TraitedSpec):
+    out_file = File(exists=True, desc='output file name')
+
+
+class WriteFile(BaseInterface):
+    """Write a string to a file"""
+
+    input_spec = WriteFileInputSpec
+    output_spec = WriteFileOutputSpec
+
+    def _run_interface(self, runtime):
+        self._get_outfile().write_text(self.inputs.string)
+        return runtime
+
+    def _get_outfile(self):
+        if isdefined(self.inputs.out_file):
+            return Path(self.inputs.out_file).resolve()
+        else:
+            return Path('outputfile.txt').resolve()
+
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        outputs['out_file'] = str(self._get_outfile)
+        return outputs
