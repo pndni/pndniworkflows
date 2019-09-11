@@ -3,7 +3,7 @@ from nipype import IdentityInterface
 from nipype.interfaces.fsl import ImageStats
 from collections import namedtuple
 from . import utils
-from .interfaces.io import WriteTSV
+from .interfaces.io import WriteFSLStats
 
 
 StatDesc = namedtuple('StatDesc', ['flag', 'names'])
@@ -48,7 +48,7 @@ def image_stats_wf(stat_keys, labels, name):
     op_string = ' '.join((stat.flag for stat in stats))
     inputspec = pe.Node(IdentityInterface(['in_file', 'index_mask_file']), 'inputspec')
     imagestats = pe.Node(ImageStats(op_string=op_string), 'imagestats')
-    write = pe.Node(WriteTSV(), 'write')
+    write = pe.Node(WriteFSLStats(), 'write')
     header = []
     for stat in stats:
         header += stat.names
