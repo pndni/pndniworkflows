@@ -1,4 +1,5 @@
-from bids import BIDSLayout
+from bids import layout
+from bids import config as bids_config
 import json
 from nipype.pipeline import engine as pe
 from nipype.interfaces.utility import IdentityInterface
@@ -7,28 +8,15 @@ import pkg_resources
 import csv
 from itertools import product
 from collections import defaultdict, OrderedDict
+from pkg_resources import resource_filename
 
 
-DERIVATIVE_PATTERNS = ['sub-{subject}/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}]'
-                       '[_ce-{contrast}][_rec-{reconstruction}][_run-{run}][_space-{space}]'
-                       '[_label-{label}][_skullstripped-{skullstripped}][_desc-{description}]'
-                       '[_map-{map_}]_{suffix}.{extension<nii|nii\\.gz|json>}',
-
-                       'sub-{subject}/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}]'
-                       '[_ce-{contrast}][_rec-{reconstruction}][_run-{run}][_space-{space}]'
-                       '[_label-{label}][_skullstripped-{skullstripped}][_desc-{description}]'
-                       '[_map-{map_}]_{suffix<dseg>}_labels.{extension<tsv>}',
-
-                       'sub-{subject}/xfm/sub-{subject}[_ses-{session}][_acq-{acquisition}]'
-                       '[_ce-{contrast}][_rec-{reconstruction}][_run-{run}][_desc-{description}]'
-                       '_from-{from_}_to-{to}_mode-{mode<image|points>}_{suffix<xfm>}.{extension<h5>}',
-
-                       'sub-{subject}/sub-{subject}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}]_{suffix}.html',
-
-                       'sub-{subject}/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}]'
-                       '[_rec-{reconstruction}][_run-{run}][_desc-{description}]_{suffix<stats>}.{extension<tsv>}',
-
-                       'sub-{subject}/sub-{subject}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}].{extension<html>}']
+def get_BIDSLayout_with_conf(dir_, **kwargs):
+    """Get BIDSLayout with bids, derivatives, and pndni_bids configuration files loaded"""
+    if "pndni_bids" not in bids_config.get_option("config_paths"):
+        layout.add_config_paths(pndni_bids=resource_filename('pndniworkflows', 'config/pndni_bids.json'))
+    l = layout.BIDSLayout(dir_, config=['bids', 'derivatives', 'pndni_bids'], **kwargs)
+    return l
 
 
 def get_subjects_node(bids_dir, subject_list=None):
@@ -43,7 +31,7 @@ def get_subjects_node(bids_dir, subject_list=None):
     """
     subjects = pe.Node(IdentityInterface(fields=['subject']), name='subjects')
     if subject_list is None:
-        subject_list = BIDSLayout(bids_dir).get_subjects()
+        subject_list = layout.BIDSLayout(bids_dir).get_subjects()
     subjects.iterables = ('subject', subject_list)
     return subjects
 
@@ -61,13 +49,6 @@ def write_dataset_description(bids_dir, **kwargs):
             raise ValueError(f'{key} is a required key')
     with open(os.path.join(bids_dir, 'dataset_description.json'), 'w') as f:
         json.dump(kwargs, f, indent=4)
-
-
-def get_bids_patterns():
-    with open(pkg_resources.resource_filename('bids', 'layout/config/bids.json'), 'r') as f:
-        patterns = json.load(f)['default_path_patterns']
-    patterns.extend(DERIVATIVE_PATTERNS)
-    return patterns
 
 
 def read_labels(labelfile):
@@ -337,7 +318,7 @@ def combine_stats_files(bids_dir, validate, row_keys, invariants, outfile, stric
     ======= =========== ========= ======= ========= =======
 
     """
-    bids = BIDSLayout(bids_dir, validate=validate)
+    bids = layout.BIDSLayout(bids_dir, validate=validate)
     out = defaultdict(OrderedDict)
     for bidsfile in bids.get(suffix='stats'):
         ent = bidsfile.get_entities()

@@ -1,0 +1,22 @@
+{
+    "name": "pndni_bids",
+    "entities": [
+	{
+	    "name": "skullstripped",
+	    "pattern": "[_/\\\\]+skullstripped-([a-zA-Z0-9]+)"
+	},
+	{
+	    "name": "map",
+	    "pattern": "[_/\\\\]+map-([a-zA-Z0-9]+)"
+	}
+    ],
+    "default_path_patterns": [
+	"sub-{subject}/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_run-{run}][_space-{space}][_label-{label}][_skullstripped-{skullstripped}][_desc-{desc}][_map-{map_}]_{suffix}.{extension<nii|nii\\.gz|json>}",
+        "sub-{subject}/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_run-{run}][_space-{space}][_label-{label}][_skullstripped-{skullstripped}][_desc-{desc}][_map-{map_}]_{suffix<features>}.{extension<txt>}",
+        "sub-{subject}/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_run-{run}][_space-{space}][_label-{label}][_skullstripped-{skullstripped}][_desc-{desc}][_map-{map_}]_{suffix<dseg|features>}_labels.{extension<tsv>}",
+        "sub-{subject}/xfm/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_run-{run}][_desc-{desc}]_from-{from_}_to-{to}_mode-{mode<image|points>}_{suffix<xfm>}.{extension<h5>}",
+        "sub-{subject}/sub-{subject}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}]_{suffix}.html",
+        "sub-{subject}/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_desc-{desc}]_{suffix<stats>}.{extension<tsv>}",
+        "sub-{subject}/sub-{subject}[_acq-{acquisition}][_rec-{reconstruction}][_run-{run}].{extension<html>}"
+    ]
+}

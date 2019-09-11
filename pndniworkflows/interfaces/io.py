@@ -6,8 +6,7 @@ from nipype.interfaces.base import (Directory,
                                     BaseInterface,
                                     BaseInterfaceInputSpec)
 from pathlib import Path
-from ..utils import get_bids_patterns, write_labels, chunk, combine_stats_files
-from bids import BIDSLayout
+from ..utils import write_labels, chunk, combine_stats_files, get_BIDSLayout_with_conf
 import shutil
 import csv
 
@@ -65,8 +64,8 @@ class WriteBIDSFile(BaseInterface):
         return runtime
 
     def __make_and_prepare_bids_file(self, bidsargs):
-        b = BIDSLayout(self.inputs.out_dir, validate=False)
-        p = b.build_path(bidsargs, path_patterns=get_bids_patterns(), strict=True)
+        b = get_BIDSLayout_with_conf(self.inputs.out_dir, validate=False)
+        p = b.build_path(bidsargs, strict=True)
         if p is None:
             raise RuntimeError('BIDSLayout was unable to build a path with parameters ' + ', '.join([f'{key}: {val}' for key, val in bidsargs.items()]))
         outfull = (Path(self.inputs.out_dir) / p).resolve()

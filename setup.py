@@ -20,5 +20,6 @@ setup(
     packages=find_packages(),
     package_data={
         '': ['templates/*tpl'],
+        '': ['config/pndni_bids.json']
     },
 )
