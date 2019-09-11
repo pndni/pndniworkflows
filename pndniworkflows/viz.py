@@ -9,6 +9,9 @@ import jinja2
 import re
 import csv
 from collections import defaultdict
+import os
+from nipype import utils as nputils
+from . import utils
 
 
 ORIENTATION = [[2, 1],
@@ -52,7 +55,7 @@ COLORLIST = (
 
 
 def _load_and_orient(fname):
-    x = nibabel.load(fname)
+    x = nibabel.load(str(fname))
     orn = nibabel.orientations.io_orientation(x.affine)
     difforn = nibabel.orientations.ornt_transform(orn, ORIENTATION)
     y = x.as_reoriented(difforn)
@@ -61,6 +64,8 @@ def _load_and_orient(fname):
 
 
 def _calcslices(s, nslices):
+    if nslices == 1:
+        return [s // 2]
     step = (s - 1) // (nslices - 1)
     last = (nslices - 1) * step
     offset = (s - last - 1) // 2
@@ -101,13 +106,13 @@ def _imshow(imgfile, nslices, labelfile=None):
             aspect = pitchtmp[0] / pitchtmp[1]
             for colind, sl in enumerate(slice_locations):
                 slicespec = tuple(slice(sl, sl + 1) if i == ind else slice(None) for i in range(3))
-                imgslice = np.squeeze(np.asarray(img.slicer[slicespec].dataobj))
+                imgslice = np.squeeze(np.asarray(img.slicer[slicespec].dataobj), axis=(ind,))
                 ax = fig.add_subplot(gs[rowind, colind])
                 ax.imshow(imgslice, vmin=vmin, vmax=vmax, aspect=aspect)
                 ax.set_xticks([])
                 ax.set_yticks([])
                 if labelfile is not None:
-                    labeldata = np.squeeze(np.asarray(label.slicer[slicespec].dataobj))
+                    labeldata = np.squeeze(np.asarray(label.slicer[slicespec].dataobj), axis=(ind,))
                     for lvind, lv in enumerate(labelvals):
                         ax.contour(labeldata == lv, levels=[0.5], colors=[COLORLIST[lvind]], linewidths=[0.5])
     FigureCanvasSVG(fig).print_svg(svg)
@@ -140,60 +145,95 @@ def _render(out_file, template, data):
     _dump(out_file, rend)
 
 
-def _single_opt_contours(name, image, out_file, nslices=7, label=None, form=True):
-    svgstr = _imshow(image, nslices, labelfile=label)
-    _render(out_file, 'single.tpl', {'name': name, 'svg': svgstr, 'form': form, 'name_no_spaces': name.replace(' ', '_')})
+def _single_opt_contours(name, image, out_file, nslices=7, label=None, form=True, relative_dir=None):
+    out = {'name': name, 'form': form, 'name_no_spaces': name.replace(' ', '_')}
+    out['svg'] = _imshow(image, nslices, labelfile=label)
+    out['filename'] = str(image)
+    if label is not None:
+        out['labelfilename'] = str(label)
+    if relative_dir is not None:
+        out['filename'] = os.path.relpath(out['filename'], relative_dir)
+        if label is not None:
+            out['labelfilename'] = os.path.relpath(out['labelfilename'], relative_dir)
+    _render(out_file, 'single.tpl', out)
 
 
-def single(name, image, out_file, nslices=7, form=True):
+def single(name, image, out_file, nslices=7, form=True, relative_dir=None):
     """Write an html file to :py:obj:`out_file` showing the :py:obj:`image`
     with :py:obj:`nslices` slices in all three axial planes
 
     :param name: Name describing :py:obj:`image`
     :type name: str
     :param image: Image file name to show (readable by :py:mod:`nibabel`)
-    :type image: str
+    :type image: path-like object
     :param out_file: File name
     :type out_file: path-like object
     :param nslices: Number of slices to show in each plane
     :type nslices: int
     :param form: Include a QC form in the output
     :type form: bool
+    :param relative_dir: Create links to filenames relative to this directory
+    :type relative_dir: path-like object
     """
-    _single_opt_contours(name, image, out_file, nslices=nslices, form=form)
+    if image is None:
+        out = {'name': name, 'form': form, 'name_no_spaces': name.replace(' ', '_')}
+        out['errormessage'] = 'No image file for this reportlet'
+        _render(out_file, 'single.tpl', out)
+    else:
+        _single_opt_contours(name, image, out_file, nslices=nslices, form=form, relative_dir=relative_dir)
 
 
-def compare(name1, image1, name2, image2, out_file, nslices=7, form=True):
+def compare(name1, image1, name2, image2, out_file, nslices=7, form=True, relative_dir=None):
     """Write an html file to :py:obj:`out_file` comparing :py:obj:`image1`
     with :py:obj:`image2` with :py:obj:`nslices` slices in all three axial planes
 
     :param name1: Name describing :py:obj:`image1`
     :type name1: str
     :param image1: Image file name to show (readable by :py:mod:`nibabel`)
-    :type image1: str
+    :type image1: path-like object
     :param name2: Name describing :py:obj:`image2`
     :type name2: str
     :param image2: Image file name to show (readable by :py:mod:`nibabel`)
-    :type image2: str
+    :type image2: path-like object
     :param out_file: File name
     :type out_file: path-like object
     :param nslices: Number of slices to show in each plane
     :type nslices: int
     :param form: Include a QC form in the output
     :type form: bool
+    :param relative_dir: Create links to filenames relative to this directory
+    :type relative_dir: path-like object
     """
-    svg1str = _imshow(image1, nslices)
-    svg2str = _imshow(image2, nslices)
 
-    svg1str = _set_svg_class(svg1str, 'first')
-    svg2str = _set_svg_class(svg2str, 'second')
-    _render(out_file, 'compare.tpl', {'name1': name1, 'name2': name2,
-                                      'svg1': svg1str, 'svg2': svg2str,
-                                      'form': form,
-                                      'name_no_spaces': '_'.join([nametmp.replace(' ', '_') for nametmp in [name1, name2]])})
+    out = {'name1': name1, 'name2': name2,
+           'form': form,
+           'name_no_spaces': '_'.join([nametmp.replace(' ', '_') for nametmp in [name1, name2]])}
+
+    if image1 is None or image2 is None:
+        errormessages = []
+        if image1 is None:
+            errormessages.append('image1')
+        if image2 is None:
+            errormessages.append('image2')
+        out['errormessage'] = ' and '.join(errormessages) + ' not specified for this reportlet.'
+    else:
+        # https://stackoverflow.com/questions/38083555/using-pathlibs-relative-to-for-directories-on-the-same-level
+        if relative_dir is not None:
+            out['filename1'] = str(os.path.relpath(image1, relative_dir))
+            out['filename2'] = str(os.path.relpath(image2, relative_dir))
+        else:
+            out['filename1'] = str(image1)
+            out['filename2'] = str(image2)
+
+        svg1str = _imshow(image1, nslices)
+        svg2str = _imshow(image2, nslices)
+
+        out['svg1'] = _set_svg_class(svg1str, 'first')
+        out['svg2'] = _set_svg_class(svg2str, 'second')
+    _render(out_file, 'compare.tpl', out)
 
 
-def contours(name, image, label, out_file, nslices=7, form=True):
+def contours(name, image, label, out_file, nslices=7, form=True, relative_dir=None):
     """Write an html file to :py:obj:`out_file` showing the :py:obj:`image`
     with :py:obj:`nslices` slices in all three axial planes. Include contour
     lines outlining the areas defined by :py:obj:`labels`.
@@ -201,7 +241,7 @@ def contours(name, image, label, out_file, nslices=7, form=True):
     :param name: Name describing :py:obj:`image`
     :type name: str
     :param image: Image file name to show (readable by :py:mod:`nibabel`)
-    :type image: str
+    :type image: path-like object
     :param label: Label file name to draw contours from (readable by :py:mod:`nibabel`)
     :type label: str
     :param out_file: File name
@@ -210,8 +250,20 @@ def contours(name, image, label, out_file, nslices=7, form=True):
     :type nslices: int
     :param form: Include a QC form in the output
     :type form: bool
+    :param relative_dir: Create links to filenames relative to this directory
+    :type relative_dir: path-like object
     """
-    _single_opt_contours(name, image, out_file, nslices=nslices, label=label, form=form)
+    if image is None or label is None:
+        out = {'name': name, 'form': form, 'name_no_spaces': name.replace(' ', '_')}
+        errormessages = []
+        if image is None:
+            errormessages.append('image')
+        if label is None:
+            errormessages.append('label')
+        out['errormessage'] = ' and '.join(errormessages) + ' not specified for this reportlet'
+        _render(out_file, 'single.tpl', out)
+    else:
+        _single_opt_contours(name, image, out_file, nslices=nslices, label=label, form=form, relative_dir=None)
 
 
 def _read_dists(distfile):
@@ -223,27 +275,48 @@ def _read_dists(distfile):
     return dists
 
 
-def distributions(name, distfile, out_file, labelmap=None, form=True):
+def distributions(name, distfile, out_file, labelfile, form=True, relative_dir=None):
     """Write an html file to :py:obj:`out_file` showing the distributions
     defined in :py:obj:`distfile`.
 
     :param name: Name describing :py:obj:`distfile`
     :type name: str
-    :param image: Distribution file name.
-                  Must be a comma-separated file with two columns and no heading.
-                  The first column is a point in distribution, and the second
-                  is an integer indicating which distribution it belongs to.
-    :type image: path-like object
+    :param distfile: Distribution file name.
+                     Must be a comma-separated file with two columns and no heading.
+                     The first column is a point in distribution, and the second
+                     is an integer indicating which distribution it belongs to.
+    :type distfile: path-like object
     :param out_file: File name
     :type out_file: path-like object
-    :param labelmap: Mapping of distribution labels to string labels.
-    :type labelmap: dict
+    :param labelfile: TSV file containing "index" and "name" columns. Used to label
+                      distributions. ("index" corresponds to the second column in
+                      distfile)
+    :type labelfile: path-like object
     :param form: Include a QC form in the output
     :type form: bool
+    :param relative_dir: Create links to filenames relative to this directory
+    :type relative_dir: path-like object
     """
-    dists = _read_dists(distfile)
-    svg = plotdists(dists, labelmap=labelmap)
-    _render(out_file, 'plot.tpl', {'name': name, 'svg': svg, 'form': form, 'name_no_spaces': name.replace(' ', '_')})
+    out = {'name': name,
+           'name_no_spaces': name.replace(' ', '_'),
+           'form': form}
+    if distfile is None or labelfile is None:
+        errormessages = []
+        if distfile is None:
+            errormessages.append('distfile')
+        if labelfile is None:
+            errormessages.append('labelfile')
+        out['errormessage'] = ' and '.join(errormessages) + ' not specified for this reportlet.'
+    else:
+        labelmap = utils.labels2dict(utils.read_labels(labelfile), 'name')
+        dists = _read_dists(distfile)
+        out['svg'] = plotdists(dists, labelmap=labelmap)
+        out['filename'] = str(distfile)
+        out['labelfilename'] = str(labelfile)
+        if relative_dir is not None:
+            out['filename'] = str(os.path.relpath(out['filename'], relative_dir))
+            out['labelfilename'] = str(os.path.relpath(out['labelfilename'], relative_dir))
+    _render(out_file, 'plot.tpl', out)
 
 
 def plotdists(dists, labelmap=None, bins=20, alpha=0.5):
@@ -258,6 +331,27 @@ def plotdists(dists, labelmap=None, bins=20, alpha=0.5):
     FigureCanvasSVG(fig).print_svg(svg)
     svg.seek(0)
     return svg.read()
+
+
+def crash(name, crashfiles, out_file, relative_dir=None):
+    out = {'name': name,
+           'name_no_spaces': name.replace(' ', '_'),
+           'crashes': []}
+
+    for cf in sorted(crashfiles):
+        c = nputils.filemanip.loadcrash(cf)
+        tmp = {}
+        tmp['nodename'] = c['node'].name
+        tmp['nodefullname'] = c['node'].fullname
+        # https://stackoverflow.com/questions/510972/getting-the-class-name-of-an-instance#511059
+        tmp['interface'] = type(c['node'].interface).__name__
+        tmp['traceback'] = ''.join(c['traceback'])
+        if relative_dir is not None:
+            tmp['crashfile'] = str(os.path.relpath(cf, relative_dir))
+        else:
+            tmp['crashfile'] = str(cf)
+        out['crashes'].append(tmp)
+    _render(out_file, 'crash.tpl', out)
 
 
 def assemble(out_file, in_files, title, form=True):

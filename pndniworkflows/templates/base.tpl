@@ -42,6 +42,7 @@
 		  outobj[e.name] = e[0].value
 	      }
 	  }
+	  outobj["crash"] = document.getElementsByClassName("crash").length > 0
 	  // this part from Matej Pokorny and mikemaccana at https://stackoverflow.com/questions/3665115/how-to-create-a-file-in-memory-for-user-to-download-but-not-through-server/18197341#18197341
 	  var outel = document.createElement('a');
 	  outel.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(outobj)));
@@ -54,6 +55,7 @@
     </script>
   </head>
   <body>
+  <h1>{{ title }}</h1>
   {{ body }}
   {% if form %}
   <form onsubmit="submitform()">

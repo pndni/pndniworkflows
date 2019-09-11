@@ -1,4 +1,5 @@
 from nipype.interfaces.base import (File,
+                                    Directory,
                                     TraitedSpec,
                                     traits,
                                     isdefined,
@@ -13,10 +14,11 @@ from .. import viz
 class ReportletCompareInputSpec(BaseInterfaceInputSpec):
     name1 = traits.Str(mandatory=True, desc='Name of first image')
     name2 = traits.Str(mandatory=True, desc='Name of second image')
-    image1 = File(exists=True, mandatory=True, desc='First image file')
-    image2 = File(exists=True, mandatory=True, desc='Second image file')
+    image1 = traits.Either(File(exists=True, mandatory=True, desc='First image file'), None)
+    image2 = traits.Either(File(exists=True, mandatory=True, desc='Second image file'), None)
     nslices = traits.Int(7, usedefault=True, desc='Number of slices to plot')
     qcform = traits.Bool(True, usedefault=True, desc='Include qc form in output')
+    relative_dir = Directory(exists=True, desc='Create links to filenames relative to this directory')
 
 
 class ReportletCompareOutputSpec(TraitedSpec):
@@ -28,13 +30,18 @@ class ReportletCompare(BaseInterface):
     output_spec = ReportletCompareOutputSpec
 
     def _run_interface(self, runtime):
+        if isdefined(self.inputs.relative_dir):
+            relative_dir = self.inputs.relative_dir
+        else:
+            relative_dir = None
         viz.compare(self.inputs.name1,
                     self.inputs.image1,
                     self.inputs.name2,
                     self.inputs.image2,
                     self._gen_outfilename(),
                     nslices=self.inputs.nslices,
-                    form=self.inputs.qcform)
+                    form=self.inputs.qcform,
+                    relative_dir=relative_dir)
         return runtime
 
     def _gen_outfilename(self):
@@ -49,10 +56,11 @@ class ReportletCompare(BaseInterface):
 
 class ReportletContourInputSpec(BaseInterfaceInputSpec):
     name = traits.Str(mandatory=True, desc='Name of image')
-    image = File(exists=True, mandatory=True, desc='Image file')
-    labelimage = File(exists=True, mandatory=True, desc='Label image to calculate contours')
+    image = traits.Either(File(exists=True, mandatory=True, desc='Image file'), None)
+    labelimage = traits.Either(File(exists=True, mandatory=True, desc='Label image to calculate contours'), None)
     nslices = traits.Int(7, usedefault=True, desc='Number of slices to plot')
     qcform = traits.Bool(True, usedefault=True, desc='Include qc form in output')
+    relative_dir = Directory(exists=True, desc='Create links to filenames relative to this directory')
 
 
 class ReportletContourOutputSpec(TraitedSpec):
@@ -64,12 +72,17 @@ class ReportletContour(BaseInterface):
     output_spec = ReportletContourOutputSpec
 
     def _run_interface(self, runtime):
+        if isdefined(self.inputs.relative_dir):
+            relative_dir = self.inputs.relative_dir
+        else:
+            relative_dir = None
         viz.contours(self.inputs.name,
                      self.inputs.image,
                      self.inputs.labelimage,
                      self._gen_outfilename(),
                      nslices=self.inputs.nslices,
-                     form=self.inputs.qcform)
+                     form=self.inputs.qcform,
+                     relative_dir=relative_dir)
         return runtime
 
     def _gen_outfilename(self):
@@ -82,16 +95,61 @@ class ReportletContour(BaseInterface):
         return outputs
 
 
+class ReportletSingleInputSpec(BaseInterfaceInputSpec):
+    name = traits.Str(mandatory=True, desc='Name of image')
+    image = traits.Either(File(exists=True, mandatory=True, desc='Image file'), None)
+    nslices = traits.Int(7, usedefault=True, desc='Number of slices to plot')
+    qcform = traits.Bool(True, usedefault=True, desc='Include qc form in output')
+    relative_dir = Directory(exists=True, desc='Create links to filenames relative to this directory')
+
+
+class ReportletSingleOutputSpec(TraitedSpec):
+    out_file = File(exists=True)
+
+
+class ReportletSingle(BaseInterface):
+    input_spec = ReportletSingleInputSpec
+    output_spec = ReportletSingleOutputSpec
+
+    def _run_interface(self, runtime):
+        if isdefined(self.inputs.relative_dir):
+            relative_dir = self.inputs.relative_dir
+        else:
+            relative_dir = None
+        viz.single(self.inputs.name,
+                   self.inputs.image,
+                   self._gen_outfilename(),
+                   nslices=self.inputs.nslices,
+                   form=self.inputs.qcform,
+                   relative_dir=relative_dir)
+        return runtime
+
+    def _gen_outfilename(self):
+        p = Path('single_{}.txt'.format(self.inputs.name)).resolve()
+        return str(p)
+
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        outputs['out_file'] = self._gen_outfilename()
+        return outputs
+
+
 class ReportletDistributionsInputSpec(BaseInterfaceInputSpec):
     name = traits.Str(mandatory=True, desc='Name of distributions')
-    distsfile = File(exists=True, mandatory=True,
-                     desc='File containing distributions. '
-                          'Must be a comma-separated file with two columns and no heading. '
-                          'The first column is a point in distribution, and the second '
-                          'is an integer indicating which distribution it belongs to.')
-    labelmap = traits.Dict(key_trait=traits.Int(), value_trait=traits.Str(),
-                           desc='Mapping of distribution labels to string labels.')
+    distsfile = traits.Either(
+                    File(exists=True, mandatory=True,
+                         desc='File containing distributions. '
+                              'Must be a comma-separated file with two columns and no heading. '
+                              'The first column is a point in distribution, and the second '
+                              'is an integer indicating which distribution it belongs to.'),
+                    None)
+    labelfile = traits.Either(
+                    File(exists=True,
+                         desc='TSV file with "index" and "name" columns. Used to label distributions '
+                              '("index" corresponds to the second column in distsfile)'),
+                    None)
     qcform = traits.Bool(True, usedefault=True, desc='Include qc form in output')
+    relative_dir = Directory(exists=True, desc='Create links to filenames relative to this directory')
 
 
 class ReportletDistributionsOutputSpec(TraitedSpec):
@@ -103,15 +161,16 @@ class ReportletDistributions(BaseInterface):
     output_spec = ReportletDistributionsOutputSpec
 
     def _run_interface(self, runtime):
-        if isdefined(self.inputs.labelmap):
-            labelmap = self.inputs.labelmap
+        if isdefined(self.inputs.relative_dir):
+            relative_dir = self.inputs.relative_dir
         else:
-            labelmap = None
+            relative_dir = None
         viz.distributions(self.inputs.name,
                           self.inputs.distsfile,
                           self._gen_outfilename(),
-                          labelmap,
-                          form=self.inputs.qcform)
+                          self.inputs.labelfile,
+                          form=self.inputs.qcform,
+                          relative_dir=relative_dir)
         return runtime
 
     def _gen_outfilename(self):
@@ -124,9 +183,46 @@ class ReportletDistributions(BaseInterface):
         return outputs
 
 
+class ReportletCrashInputSpec(BaseInterfaceInputSpec):
+    name = traits.Str(mandatory=True, desc='Name of distributions')
+    crashfiles = traits.List(File(exists=True, mandatory=True),
+                             desc='List of nipype crash files (can be empty)')
+    relative_dir = Directory(exists=True, desc='Create links to filenames relative to this directory')
+
+
+class ReportletCrashOutputSpec(TraitedSpec):
+    out_file = File(exists=True)
+
+
+class ReportletCrash(BaseInterface):
+    input_spec = ReportletCrashInputSpec
+    output_spec = ReportletCrashOutputSpec
+
+    def _run_interface(self, runtime):
+        if isdefined(self.inputs.relative_dir):
+            relative_dir = self.inputs.relative_dir
+        else:
+            relative_dir = None
+        viz.crash(self.inputs.name,
+                  self.inputs.crashfiles,
+                  self._gen_outfilename(),
+                  relative_dir=relative_dir)
+        return runtime
+
+    def _gen_outfilename(self):
+        p = Path('crash_{}.txt'.format(self.inputs.name)).resolve()
+        return str(p)
+
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        outputs['out_file'] = self._gen_outfilename()
+        return outputs
+
+
 class AssembleReportInputSpec(BaseInterfaceInputSpec):
     in_files = InputMultiPath(File(exists=True), mandatory=True)
     title = traits.Str(mandatory=True, desc='Title of final report')
+    out_file = File(desc='Output file')
 
 
 class AssembleReportOutputSpec(TraitedSpec):
@@ -142,7 +238,10 @@ class AssembleReport(BaseInterface):
         return runtime
 
     def _gen_outfilename(self):
-        p = Path('report.html').resolve()
+        if isdefined(self.inputs.out_file):
+            p = Path(self.inputs.out_file).resolve()
+        else:
+            p = Path('report.html').resolve()
         return str(p)
 
     def _list_outputs(self):
