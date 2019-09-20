@@ -211,6 +211,7 @@ class CombineStats(BaseInterface):
 
 class WriteFileInputSpec(BaseInterfaceInputSpec):
     string = traits.Str(mandatory=True)
+    newline = traits.Either(traits.Str, None, default=None, usedefault=True)
     out_file = File()
 
 
@@ -225,7 +226,8 @@ class WriteFile(BaseInterface):
     output_spec = WriteFileOutputSpec
 
     def _run_interface(self, runtime):
-        self._get_outfile().write_text(self.inputs.string)
+        with open(self._get_outfile(), 'w', newline=self.inputs.newline) as f:
+            f.write(self.inputs.string)
         return runtime
 
     def _get_outfile(self):
@@ -236,5 +238,5 @@ class WriteFile(BaseInterface):
 
     def _list_outputs(self):
         outputs = self.output_spec().get()
-        outputs['out_file'] = str(self._get_outfile)
+        outputs['out_file'] = str(self._get_outfile())
         return outputs
