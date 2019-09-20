@@ -130,6 +130,16 @@ def test_ensure_uniq_3():
     assert utils.unique(x)
 
 
+def test_first_nonique():
+    x = [1, 2, 3, 2]
+    assert utils.first_nonunique(x) == 2
+
+
+def test_first_nonique():
+    x = [1, 4, 3, 2]
+    assert utils.first_nonunique(x) is None
+
+
 def test_labels2dict():
     in1 = [OrderedDict(index=1, name='T1'),
            OrderedDict(index=2, name='T2')]
@@ -352,11 +362,22 @@ def test_combine_stats_files_docstring(tmp_path):
                       '2\tWM\t4\t40.0\n')
     outfile = tmp_path / 'outfile.tsv'
     with open(str(outfile), 'w') as f:
-           utils.combine_stats_files(str(tmp_path), False, ('subject', 'acquisition'),
-                                     {'datatype': 'anat', 'extension': 'tsv'}, f,
-                                     index='name', ignore=['index'])
+        utils.combine_stats_files(str(tmp_path), False, ('subject', 'acquisition'),
+                                  {'datatype': 'anat', 'extension': 'tsv'}, f,
+                                  index='name', ignore=['index'])
     assert outfile.read_text() == ('subject\tacquisition\tGM_volume\tGM_mean\tWM_volume\tWM_mean\n'
                                    '1\t\t10\t20.0\t5\t30.0\n'
                                    '2\t\t11\t19.0\t6\t31.0\n'
                                    '2\t1\t8\t25.0\t4\t40.0\n')
-           
+
+
+def test_write_labels(tmp_path):
+    labels = [{'index': 0, 'name': 'a'}, {'index': 1, 'name': 'b'}]
+    utils.write_labels(tmp_path / 'out.tsv', labels)
+    s = StringIO(newline='')
+    utils.write_labels(s, labels)
+    s.seek(0)
+    st = s.read()
+    with open(tmp_path / 'out.tsv', 'r', newline='') as f:
+        ft = f.read()
+    assert st == ft == 'index\tname\r\n0\ta\r\n1\tb\r\n'

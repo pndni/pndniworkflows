@@ -4,11 +4,11 @@ import json
 from nipype.pipeline import engine as pe
 from nipype.interfaces.utility import IdentityInterface
 import os
-import pkg_resources
 import csv
 from itertools import product
 from collections import defaultdict, OrderedDict
 from pkg_resources import resource_filename
+import io
 
 
 def get_BIDSLayout_with_conf(dir_, **kwargs):
@@ -60,7 +60,7 @@ def read_labels(labelfile):
              (with the index parameter converted to :py:obj:`int`)
 
     """
-    with open(labelfile, 'r') as f:
+    with open(labelfile, 'r', newline='') as f:
         reader = csv.DictReader(f, delimiter='\t')
         out = []
         for row in reader:
@@ -100,11 +100,18 @@ def write_labels(labelfile, labels):
     :param labels: :py:obj:`list` of :py:obj:`dict`, which all have the same keys
     """
     _check_same_keys(labels)
-    with open(labelfile, 'w', newline='') as f:
+    if isinstance(labelfile, io.IOBase):
+        f = labelfile
+    else:
+        f = open(labelfile, 'w', newline='')
+    try:
         writer = csv.DictWriter(f, delimiter='\t', fieldnames=list(labels[0].keys()))
         writer.writeheader()
         for row in labels:
             writer.writerow(row)
+    finally:
+        if not isinstance(labelfile, io.IOBase):
+            f.close()
 
 
 def _combine2labels(l1, l2, l1max):
@@ -180,12 +187,22 @@ def unique(x):
     :return: True if elements of list are unique, False otherwise
 
     """
+    return first_nonunique(x) is None
+
+
+def first_nonunique(x):
+    """returns the first non-unqiue element of list x. uses the "in" operator for comparison
+
+    :param x: list
+    :return: the first non-unique element of x
+
+    """
     x = x.copy()
     while len(x):
         first = x.pop(0)
         if first in x:
-            return False
-    return True
+            return first
+    return None
 
 
 def chunk(iterable, chunksize):
@@ -405,7 +422,7 @@ def tsv_to_flat_dict(tsvfile, index=None, ignore=None):
 
     """
     out = OrderedDict()
-    with open(tsvfile, 'r') as f:
+    with open(tsvfile, 'r', newline='') as f:
         reader = csv.reader(f, delimiter='\t')
         header = next(reader)
         if index is not None:
