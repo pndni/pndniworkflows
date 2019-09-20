@@ -1,4 +1,4 @@
-from pndniworkflows.interfaces.io import WriteFSLStats, WriteBIDSFile
+from pndniworkflows.interfaces.io import WriteFSLStats, WriteBIDSFile, WriteFile
 import pytest
 import os
 import csv
@@ -125,3 +125,23 @@ def test_write_tsv_docstr3(cdtmppath):
     w.inputs.data = data
     with pytest.raises(ValueError):
         w.run()
+
+
+def test_write_file(cdtmppath):
+    w = WriteFile()
+    w.inputs.string = 'hi\r\nthere\r\n'
+    r = w.run()
+    with open(r.outputs.out_file, 'r', newline='') as f:
+        assert f.read() == 'hi\r\nthere\r\n'
+    w = WriteFile()
+    w.inputs.string = 'hi\r\nthere\r\n'
+    w.inputs.newline = ''
+    r = w.run()
+    with open(r.outputs.out_file, 'r', newline='') as f:
+        assert f.read() == 'hi\r\nthere\r\n'
+    w = WriteFile()
+    w.inputs.string = 'hi\nthere\n'
+    w.inputs.newline = '\r\n'
+    r = w.run()
+    with open(r.outputs.out_file, 'r', newline='') as f:
+        assert f.read() == 'hi\r\nthere\r\n'
