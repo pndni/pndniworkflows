@@ -7,6 +7,8 @@ from nipype.algorithms.misc import Gunzip
 import csv
 import re
 import os
+from pndniworkflows.utils import Points
+from pathlib import Path
 
 
 class ItemInputSpec(BaseInterfaceInputSpec):
@@ -180,105 +182,71 @@ class DictToString(BaseInterface):
 #         return self.__output_type_flags
 
 
-class Minc2AntsPointsInputSpec(BaseInterfaceInputSpec):
+class ConvertPointsInputSpec(BaseInterfaceInputSpec):
     in_file = File(exists=True,
-                   desc='`Format reference <https://en.wikibooks.org/wiki/MINC/SoftwareDevelopment/Tag_file_format_reference>`_')
-    flipxy = traits.Bool(False,
-                         desc='Whether to negate the output x and y values. This is usually what you want '
-                              'as ANTS uses ITK, which operates in LPS coordinates (when ANTS loads a '
-                              'Nifti file it converts the affine matrix to LPS, so your ANTS points file '
-                              ' should be in LPS).')
+                   desc='Input file.')
+    in_format = traits.Enum('tsv', 'ants', 'minc',
+                            desc="""Input file format.
+
+"tsv": a TSV file with "x", "y", "z", and "index"
+        columns (of types float, float, float, and int, respectively). All other
+        columns will be ignored
+
+"ants": A CSV file with "x", "y", "z", and "index"
+        columns (of types float, float, float, and int, respectively). All other
+        columns will be ignored. The x and y columns will be multiplied by -1.0
+        (ants uses LPS while this class uses RAS).
+
+"minc": a '`minc tag file <https://en.wikibooks.org/wiki/MINC/SoftwareDevelopment/Tag_file_format_reference>`_'.
+        In this case, we assume each point has 7 parameters, and that the text label is quoted. Therefore
+        it is more restrictive than the linked specification. All information besides x, y, z, and label
+        are ignored.
+""")
+    out_format = traits.Enum('tsv', 'ants', 'minc',
+                             desc='Output type.')
 
 
-class Minc2AntsPointsOutputSpec(TraitedSpec):
+class ConvertPointsOutputSpec(TraitedSpec):
     out_file = File(exists=True,
-                    desc='CSV file with columns x,y,z,weight,structID,patientID,label,t')
+                    desc='Output file.')
 
 
-class Minc2AntsPoints(BaseInterface):
-    """Convert an MNI points
-    file to an ANTS points file
+class ConvertPoints(BaseInterface):
+    """Convert a points file. Formats determined by which input/output
+    traits are used.
     """
-    input_spec = Minc2AntsPointsInputSpec
-    output_spec = Minc2AntsPointsOutputSpec
+    input_spec = ConvertPointsInputSpec
+    output_spec = ConvertPointsOutputSpec
 
     def _run_interface(self, runtime):
         out = self._list_outputs()['out_file']
-        with open(self.inputs.in_file, 'r') as f, open(out, 'w') as fout:
-            writer = csv.writer(fout, delimiter=',')
-            writer.writerow(['x', 'y', 'z', 'weight', 'structID', 'patientID', 'label', 't'])
-            contents = f.read()
-            # remove comments
-            contents = re.sub('[#%][^\n]*\n', '\n', contents)
-            match = re.match(r'MNI Tag Point File\n+Volumes = [12];\n+\s*Points =([^;]*);', contents)
-            pointsstr = match.group(1)
-            points = pointsstr.split()
-            npoints = len(points) // 7
-            if npoints != len(points) / 7.0:
-                raise RuntimeError('MNI Tags file must have 7 fields per point')
-            for i in range(npoints):
-                rowitems = points[i * 7:(i + 1) * 7]
-                rowfloats = rowitems[:6]
-                label = rowitems[6]
-                rowfloats = [float(tmp) for tmp in rowfloats]
-                if self.inputs.flipxy:
-                    rowfloats[0] *= -1
-                    rowfloats[1] *= -1
-                if label[0] != '"' or label[-1] != '"':
-                    raise RuntimeError("label must be surrounded by quotes")
-                label = label[1:-1]
-                writer.writerow(rowfloats + [label] + [0.0])
+        if out.exists():
+            raise RuntimeError(f'File {out} exists.')
+        if self.inputs.in_format == 'tsv':
+            points = Points.from_tsv(self.inputs.in_file)
+        elif self.inputs.in_format == 'ants':
+            points = Points.from_ants_csv(self.inputs.in_file)
+        elif self.inputs.in_format == 'minc':
+            points = Points.from_minc_tag(self.inputs.in_file)
+        else:
+            raise ValueError('Unsupported input format. This should be inpossible')
+        if self.inputs.out_format == 'tsv':
+            points.to_tsv(out)
+        elif self.inputs.out_format == 'ants':
+            points.to_ants_csv(out)
+        elif self.inputs.out_format == 'minc':
+            points.to_minc_tag(out)
+        else:
+            raise ValueError('Unsupported output format. This should be inpossible')
         return runtime
 
     def _list_outputs(self):
         out = self._outputs().get()
-        infile = os.path.split(self.inputs.in_file)[1]
-        base = os.path.splitext(infile)[0]
-        out['out_file'] = os.path.abspath(base + '_ants.csv')
-        return out
-
-
-class Ants2MincPointsInputSpec(BaseInterfaceInputSpec):
-    in_file = File(exists=True,
-                   desc='CSV file with columns x,y,z,weight,structID,patientID,label,t')
-    flipxy = traits.Bool(False,
-                         desc='Whether to negate the output x and y values. This is usually what you want '
-                              'as ANTS uses ITK, which operates in LPS coordinates (when ANTS loads a '
-                              'Nifti file it converts the affine matrix to LPS, so your ANTS points file '
-                              ' should be in LPS).')
-
-
-class Ants2MincPointsOutputSpec(TraitedSpec):
-    out_file = File(exists=True,
-                    desc='`Format reference <https://en.wikibooks.org/wiki/MINC/SoftwareDevelopment/Tag_file_format_reference>`_')
-
-
-class Ants2MincPoints(BaseInterface):
-    """Convert an ANTS points file
-    file to an MNI points file
-    """
-    input_spec = Ants2MincPointsInputSpec
-    output_spec = Ants2MincPointsOutputSpec
-
-    def _run_interface(self, runtime):
-        out = self._list_outputs()['out_file']
-        with open(self.inputs.in_file, 'r') as f, open(out, 'w') as fout:
-            reader = csv.reader(f, delimiter=',')
-            fout.write('MNI Tag Point File\nVolumes = 1;\nPoints =')
-            fieldnames = next(reader)
-            if fieldnames != ['x', 'y', 'z', 'weight', 'structID', 'patientID', 'label', 't']:
-                raise RuntimeError("Incorrect points file format")
-            for row in reader:
-                if self.inputs.flipxy:
-                    row[0] = str(float(row[0]) * -1.0)
-                    row[1] = str(float(row[1]) * -1.0)
-                fout.write('\n ' + ' '.join(str(tmp) for tmp in row[:-2]) + ' "' + row[-2] + '"')
-            fout.write(';\n')
-        return runtime
-
-    def _list_outputs(self):
-        out = self._outputs().get()
-        infile = os.path.split(self.inputs.in_file)[1]
-        base = os.path.splitext(infile)[0]
-        out['out_file'] = os.path.abspath(base + '_minc.tag')
+        if self.inputs.out_format == 'tsv':
+            ext = '.tsv'
+        elif self.inputs.out_format == 'ants':
+            ext = '.csv'
+        elif self.inputs.out_format == 'minc':
+            ext = '.tag'
+        out['out_file'] = Path(Path(self.inputs.in_file).with_suffix(ext).name).resolve()
         return out

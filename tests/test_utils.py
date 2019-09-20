@@ -1,8 +1,11 @@
 from pndniworkflows import utils
+from pndniworkflows.interfaces.utils import ConvertPoints
 from collections import OrderedDict
 import pytest
 from io import StringIO
 import csv
+import os
+import tempfile
 
 
 def test_combine_labels():
@@ -381,3 +384,60 @@ def test_write_labels(tmp_path):
     with open(tmp_path / 'out.tsv', 'r', newline='') as f:
         ft = f.read()
     assert st == ft == 'index\tname\r\n0\ta\r\n1\tb\r\n'
+
+
+def cmp(f1, f2):
+    with open(f1, 'r', newline='') as i1, open(f2, 'r', newline='') as i2:
+        return i1.read() == i2.read()
+
+
+@pytest.fixture
+def points_path(tmp_path):
+    (tmp_path / 'mni.tag').write_text("""MNI Tag Point File
+Volumes = 1;
+Points =
+ 1.1 1.2 1.3 0 -1 -1 "10"
+ 2.1 2.2 2.3 0 -1 -1 "20";
+""")
+    with open(tmp_path / 'ants.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['x', 'y', 'z', 'index', 't'])
+        writer.writerow([-1.1, -1.2, 1.3, 10, 0.0])
+        writer.writerow([-2.1, -2.2, 2.3, 20, 0.0])
+
+    with open(tmp_path / 'simple.tsv', 'w', newline='') as f:
+        writer = csv.writer(f, delimiter='\t')
+        writer.writerow(['x', 'y', 'z', 'index'])
+        writer.writerow([1.1, 1.2, 1.3, 10, 0.0])
+        writer.writerow([2.1, 2.2, 2.3, 20, 0.0])
+    return tmp_path
+
+
+def test_Points_read(points_path):
+    tsv = utils.Points.from_tsv(points_path / 'simple.tsv')
+    ants = utils.Points.from_ants_csv(points_path / 'ants.csv')
+    minc = utils.Points.from_minc_tag(points_path / 'mni.tag')
+    assert tsv == ants == minc
+
+
+def test_Points_write(points_path):
+    p = utils.Points([utils.SinglePoint(1.1, 1.2, 1.3, 10),
+                      utils.SinglePoint(2.1, 2.2, 2.3, 20)])
+    p.to_ants_csv(points_path / 'out_ants.csv')
+    assert cmp(points_path / 'ants.csv', points_path / 'out_ants.csv')
+    p.to_minc_tag(points_path / 'out_mni.tag')
+    assert cmp(points_path / 'mni.tag', points_path / 'out_mni.tag')
+
+
+@pytest.fixture
+def cleandir():
+    os.chdir(tempfile.mkdtemp())
+
+
+@pytest.mark.usefixtures('cleandir')
+@pytest.mark.parametrize('in_format,points_file', [('tsv', 'simple.tsv'), ('ants', 'ants.csv'), ('minc', 'mni.tag')])
+@pytest.mark.parametrize('out_format,out_file', [('tsv', 'simple.tsv'), ('ants', 'ants.csv'), ('minc', 'mni.tag')])
+def test_ConvertPoints(points_path, in_format, points_file, out_format, out_file):
+    i = ConvertPoints(in_format=in_format, in_file=points_path / points_file, out_format=out_format)
+    r = i.run()
+    cmp(r.outputs.out_file, points_path / out_file)
