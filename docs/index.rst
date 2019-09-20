@@ -14,7 +14,6 @@ Welcome to pndniworkflows's documentation!
    interfaces
    node_helpers
    utility_functions
-   viz
 
 
 
