@@ -5,6 +5,7 @@ from nipype.interfaces.base import (Directory,
                                     isdefined,
                                     BaseInterface,
                                     BaseInterfaceInputSpec)
+from nipype.interfaces import Rename
 from pathlib import Path
 from ..utils import write_labels, chunk, combine_stats_files, get_BIDSLayout_with_conf
 import shutil
@@ -240,3 +241,18 @@ class WriteFile(BaseInterface):
         outputs = self.output_spec().get()
         outputs['out_file'] = str(self._get_outfile())
         return outputs
+
+
+class MismatchedExtensionError(Exception):
+    pass
+
+
+class RenameAndCheckExtension(Rename):
+    """subclass of Rename that throws an error if the file extension is not preserved
+    """
+
+    def _run_interface(self, runtime):
+        super()._run_interface(runtime)
+        if ''.join(Path(self.inputs.in_file).suffixes) != ''.join(Path(self._results['out_file']).suffixes):
+            raise MismatchedExtensionError(f'{self.inputs.in_file} and {self._results["out_file"]} have different extensions')
+        return runtime

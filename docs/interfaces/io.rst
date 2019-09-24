@@ -2,4 +2,4 @@ IO
 ^^
 
 .. automodule:: pndniworkflows.interfaces.io
-   :members: WriteBIDSFile, WriteFSLStats, CombineStats
+   :members: WriteBIDSFile, WriteFSLStats, CombineStats, RenameAndCheckExtension
