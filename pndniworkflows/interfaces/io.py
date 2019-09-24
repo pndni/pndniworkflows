@@ -253,6 +253,6 @@ class RenameAndCheckExtension(Rename):
 
     def _run_interface(self, runtime):
         super()._run_interface(runtime)
-        if ''.join(Path(self.inputs.in_file).suffixes) != ''.join(Path(self._results['out_file']).suffixes):
+        if Path(self.inputs.in_file).suffix != Path(self._results['out_file']).suffix:
             raise MismatchedExtensionError(f'{self.inputs.in_file} and {self._results["out_file"]} have different extensions')
         return runtime
