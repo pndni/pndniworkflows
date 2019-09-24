@@ -1,11 +1,13 @@
 from pndniworkflows import utils
-from pndniworkflows.interfaces.utils import ConvertPoints
+from pndniworkflows.interfaces.utils import ConvertPoints, Gzip
 from collections import OrderedDict
 import pytest
 from io import StringIO
 import csv
 import os
 import tempfile
+import gzip
+from pathlib import Path
 
 
 def test_combine_labels():
@@ -441,3 +443,14 @@ def test_ConvertPoints(points_path, in_format, points_file, out_format, out_file
     i = ConvertPoints(in_format=in_format, in_file=points_path / points_file, out_format=out_format)
     r = i.run()
     cmp(r.outputs.out_file, points_path / out_file)
+
+
+@pytest.mark.usefixtures('cleandir')
+def test_Gzip(tmp_path):
+    in_file = tmp_path / 'test.txt'
+    in_file.write_text('some text here')
+    i = Gzip(in_file=in_file)
+    r = i.run()
+    b = Path(r.outputs.out_file).read_bytes()
+    bd = gzip.decompress(b).decode()
+    assert bd == 'some text here'

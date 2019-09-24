@@ -2,7 +2,9 @@ from nipype.interfaces.base import (traits,
                                     File,
                                     TraitedSpec,
                                     BaseInterface,
-                                    BaseInterfaceInputSpec)
+                                    BaseInterfaceInputSpec,
+                                    StdOutCommandLine,
+                                    StdOutCommandLineInputSpec)
 from nipype.algorithms.misc import Gunzip
 import csv
 import re
@@ -88,6 +90,28 @@ class GetInputSpec(BaseInterfaceInputSpec):
 
 class GetOutputSpec(TraitedSpec):
     item = traits.Any()
+
+
+class GzipInputSpec(StdOutCommandLineInputSpec):
+    in_file = File(exists=True, argstr='%s', position=0, desc='Input file')
+
+
+class GzipOutputSpec(TraitedSpec):
+    out_file = File(desc='Output file')
+
+
+class Gzip(StdOutCommandLine):
+    input_spec = GzipInputSpec
+    output_spec = GzipOutputSpec
+    _cmd = 'gzip --to-stdout'
+
+    def _gen_outfilename(self):
+        return Path(Path(self.inputs.in_file).name + '.gz').resolve()
+
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        outputs['out_file'] = self._gen_outfilename()
+        return outputs
 
 
 class Get(BaseInterface):
