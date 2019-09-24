@@ -66,7 +66,7 @@ class WriteBIDSFile(BaseInterface):
 
     def __make_and_prepare_bids_file(self, bidsargs):
         b = get_BIDSLayout_with_conf(self.inputs.out_dir, validate=False)
-        p = b.build_path(bidsargs, strict=True)
+        p = b.build_path(bidsargs, strict=True, validate=False)
         if p is None:
             raise RuntimeError('BIDSLayout was unable to build a path with parameters ' + ', '.join([f'{key}: {val}' for key, val in bidsargs.items()]))
         outfull = (Path(self.inputs.out_dir) / p).resolve()
