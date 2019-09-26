@@ -10,6 +10,7 @@ from pathlib import Path
 from ..utils import write_labels, chunk, combine_stats_files, get_BIDSLayout_with_conf
 import shutil
 import csv
+import errno
 
 
 class WriteBIDSFileInputSpec(BaseInterfaceInputSpec):
@@ -59,6 +60,8 @@ class WriteBIDSFile(BaseInterface):
         self.__makebidspath_output_label_tmp = None
         if isdefined(self.inputs.labelinfo):
             args['extension'] = 'tsv'
+            args['presuffix'] = args['suffix']
+            args['suffix'] = 'labels'
             outtsv = self.__make_and_prepare_bids_file(args)
             self.__makebidspath_output_label_tmp = str(outtsv)
             write_labels(str(outtsv), self.inputs.labelinfo)
@@ -256,3 +259,34 @@ class RenameAndCheckExtension(Rename):
         if Path(self.inputs.in_file).suffix != Path(self._results['out_file']).suffix:
             raise MismatchedExtensionError(f'{self.inputs.in_file} and {self._results["out_file"]} have different extensions')
         return runtime
+
+
+class ExportFileInputSpec(BaseInterfaceInputSpec):
+    in_file = File(exists=True, desc='Input file name')
+    out_file = File(exists=False, desc='Output file name')
+    check_extension = traits.Bool(False, desc='Ensure that the input and output file extensions match')
+    clobber = traits.Bool(False, desc='Permit overwriting existing files')
+
+
+class ExportFileOutputSpec(TraitedSpec):
+    out_file = File(exists=True, desc='Output file name')
+
+
+class ExportFile(BaseInterface):
+    input_spec = ExportFileInputSpec
+    output_spec = ExportFileOutputSpec
+
+    def _run_interface(self, runtime):
+        in_file = Path(self.inputs.in_file)
+        out_file = Path(self.inputs.out_file)
+        if not self.inputs.clobber and out_file.exists():
+            raise FileExistsError(errno.EEXIST, f'File {out_file} exists')
+        if self.inputs.check_extension and in_file.suffix != out_file.suffix:
+            raise MismatchedExtensionError(f'{in_file} and {out_file} have different extensions')
+        shutil.copy(str(in_file), str(out_file))
+        return runtime
+
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        outputs['out_file'] = self.inputs.out_file
+        return outputs

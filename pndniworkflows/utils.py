@@ -553,3 +553,17 @@ class Points(object):
 
     def __eq__(self, other):
         return len(self) == len(other) and self.points == other.points
+
+
+def csv2tsv(input_file, output_file, header=None):
+    with open(input_file, 'r', newline='') as fin, open(output_file, 'w', newline='') as fout:
+        reader = csv.reader(fin)
+        writer = csv.writer(fout, delimiter='\t')
+        row = next(reader)
+        if header is not None:
+            if len(row) != len(header):
+                raise RuntimeError('supplied header does not have the same number of columns as input')
+            writer.writerow(header)
+        writer.writerow(row)
+        for row in reader:
+            writer.writerow(row)

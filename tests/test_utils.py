@@ -1,5 +1,5 @@
 from pndniworkflows import utils
-from pndniworkflows.interfaces.utils import ConvertPoints, Gzip
+from pndniworkflows.interfaces.utils import ConvertPoints, Gzip, Csv2Tsv
 from collections import OrderedDict
 import pytest
 from io import StringIO
@@ -454,3 +454,28 @@ def test_Gzip(tmp_path):
     b = Path(r.outputs.out_file).read_bytes()
     bd = gzip.decompress(b).decode()
     assert bd == 'some text here'
+
+
+def _read(fname):
+    with open(fname, 'r', newline='') as f:
+        return f.read()
+
+
+def _run_csv_to_tsv_interface(in_file, out_file, header=None):
+    i = Csv2Tsv(in_file=in_file, out_file=out_file)
+    if header is not None:
+        i.inputs.header = header
+    i.run()
+
+
+@pytest.mark.parametrize('runner', [utils.csv2tsv, _run_csv_to_tsv_interface])
+def test_csv_to_tsv(tmp_path, runner):
+    in_file = tmp_path / 'in.csv'
+    in_file.write_text('h1,h2\r\n1,2\r\n3,4\r\n')
+    out_file = tmp_path / 'out.tsv'
+    runner(in_file, out_file)
+    assert _read(out_file) == 'h1\th2\r\n1\t2\r\n3\t4\r\n'
+    runner(in_file, out_file, header=['a1', 'a2'])
+    assert _read(out_file) == 'a1\ta2\r\nh1\th2\r\n1\t2\r\n3\t4\r\n'
+    with pytest.raises(RuntimeError):
+        runner(in_file, out_file, header=['a1'])

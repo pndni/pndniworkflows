@@ -1,4 +1,4 @@
-from pndniworkflows.interfaces.io import WriteFSLStats, WriteBIDSFile, WriteFile, RenameAndCheckExtension, MismatchedExtensionError
+from pndniworkflows.interfaces.io import WriteFSLStats, WriteBIDSFile, WriteFile, RenameAndCheckExtension, MismatchedExtensionError, ExportFile
 import pytest
 import os
 import csv
@@ -157,3 +157,26 @@ def test_RenameAndCheckExtension(tmp_path):
         i.run()
     i.inputs.format_string = str(Path(tmp_path / 'out.txt'))
     i.run()
+
+
+def test_ExportFile(tmp_path):
+    testin = tmp_path / 'in.txt'
+    testin.write_text('test string')
+    i = ExportFile()
+    i.inputs.in_file = testin
+    i.inputs.out_file = tmp_path / 'out.tsv'
+    i.inputs.check_extension = True
+    with pytest.raises(MismatchedExtensionError):
+        i.run()
+    i.inputs.check_extension = False
+    i.run()
+    assert (tmp_path / 'out.tsv').read_text() == 'test string'
+    i.inputs.out_file = tmp_path / 'out.txt'
+    i.inputs.check_extension = True
+    i.run()
+    assert (tmp_path / 'out.txt').read_text() == 'test string'
+    with pytest.raises(FileExistsError):
+        i.run()
+    i.inputs.clobber = True
+    i.run()
+    assert (tmp_path / 'out.txt').read_text() == 'test string'

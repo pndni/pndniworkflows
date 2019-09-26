@@ -1,4 +1,5 @@
 from nipype.interfaces.base import (traits,
+                                    isdefined,
                                     File,
                                     TraitedSpec,
                                     BaseInterface,
@@ -6,10 +7,7 @@ from nipype.interfaces.base import (traits,
                                     StdOutCommandLine,
                                     StdOutCommandLineInputSpec)
 from nipype.algorithms.misc import Gunzip
-import csv
-import re
-import os
-from pndniworkflows.utils import Points
+from pndniworkflows.utils import Points, csv2tsv
 from pathlib import Path
 
 
@@ -273,4 +271,39 @@ class ConvertPoints(BaseInterface):
         elif self.inputs.out_format == 'minc':
             ext = '.tag'
         out['out_file'] = Path(Path(self.inputs.in_file).with_suffix(ext).name).resolve()
+        return out
+
+
+class Csv2TsvInputSpec(BaseInterfaceInputSpec):
+    in_file = File(exists=True, desc='Input CSV file', mandatory=True)
+    out_file = File(desc='Output TSV file')
+    header = traits.ListStr(desc='Header to add to output file')
+
+
+class Csv2TsvOutputSpec(TraitedSpec):
+    out_file = File(exists=True, desc='Output TSV file')
+
+
+class Csv2Tsv(BaseInterface):
+    input_spec = Csv2TsvInputSpec
+    output_spec = Csv2TsvOutputSpec
+
+    def _run_interface(self, runtime):
+        out_file = self._gen_outfilename()
+        if isdefined(self.inputs.header):
+            header = self.inputs.header
+        else:
+            header = None
+        csv2tsv(self.inputs.in_file, out_file, header=header)
+        return runtime
+
+    def _gen_outfilename(self):
+        if isdefined(self.inputs.out_file):
+            return self.inputs.out_file
+        else:
+            return Path(Path(self.inputs.in_file).stem + '.tsv').resolve()
+
+    def _list_outputs(self):
+        out = self._outputs().get()
+        out['out_file'] = self._gen_outfilename()
         return out
