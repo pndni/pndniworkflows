@@ -2,8 +2,8 @@ from nipype.interfaces.base import (traits,
                                     isdefined,
                                     File,
                                     TraitedSpec,
-                                    BaseInterface,
                                     BaseInterfaceInputSpec,
+                                    SimpleInterface,
                                     StdOutCommandLine,
                                     StdOutCommandLineInputSpec)
 from nipype.algorithms.misc import Gunzip
@@ -20,7 +20,7 @@ class ItemOutputSpec(TraitedSpec):
     out_item = traits.Any(desc='The item in the list (i.e. ``in_list[0]``)')
 
 
-class Item(BaseInterface):
+class Item(SimpleInterface):
     """Extract the first item from a list, raising an error if the
     length of the list is not exactly one."""
     input_spec = ItemInputSpec
@@ -30,13 +30,8 @@ class Item(BaseInterface):
         in_list = self.inputs.in_list
         if len(in_list) != 1:
             raise ValueError('Length of list does not equal 1')
-        self.__out_item_tmp = in_list[0]
+        self._results['out_item'] = in_list[0]
         return runtime
-
-    def _list_outputs(self):
-        outputs = self.output_spec().get()
-        outputs['out_item'] = self.__out_item_tmp
-        return outputs
 
 
 class MergeDictionariesInputSpec(BaseInterfaceInputSpec):
@@ -48,7 +43,7 @@ class MergeDictionariesOutputSpec(TraitedSpec):
     out = traits.Dict()
 
 
-class MergeDictionaries(BaseInterface):
+class MergeDictionaries(SimpleInterface):
     """Merge two dictionaries, raising an error if they have keys in common
     """
     input_spec = MergeDictionariesInputSpec
@@ -57,13 +52,8 @@ class MergeDictionaries(BaseInterface):
     def _run_interface(self, runtime):
         if len(set(self.inputs.in1.keys()).intersection(set(self.inputs.in2.keys()))) > 0:
             raise ValueError('Dictionaries must not have common keys')
-        self.__out_dict_tmp = {**self.inputs.in1, **self.inputs.in2}
+        self._results['out'] = {**self.inputs.in1, **self.inputs.in2}
         return runtime
-
-    def _list_outputs(self):
-        outputs = self.output_spec().get()
-        outputs['out'] = self.__out_dict_tmp
-        return outputs
 
 
 class GunzipOrIdent(Gunzip):
@@ -79,15 +69,6 @@ class GunzipOrIdent(Gunzip):
         else:
             shutil.copyfile(self.inputs.in_file, self._gen_output_file_name())
         return runtime
-
-
-class GetInputSpec(BaseInterfaceInputSpec):
-    dictionary = traits.Dict(mandatory=True)
-    key = traits.Any(mandatory=True)
-
-
-class GetOutputSpec(TraitedSpec):
-    item = traits.Any()
 
 
 class GzipInputSpec(StdOutCommandLineInputSpec):
@@ -112,7 +93,16 @@ class Gzip(StdOutCommandLine):
         return outputs
 
 
-class Get(BaseInterface):
+class GetInputSpec(BaseInterfaceInputSpec):
+    dictionary = traits.Dict(mandatory=True)
+    key = traits.Any(mandatory=True)
+
+
+class GetOutputSpec(TraitedSpec):
+    item = traits.Any()
+
+
+class Get(SimpleInterface):
     """extract value from dictionary
     ``item = dictionary[key]``
     """
@@ -120,13 +110,8 @@ class Get(BaseInterface):
     output_spec = GetOutputSpec
 
     def _run_interface(self, runtime):
-        self.__out_item_tmp = self.inputs.dictionary[self.inputs.key]
+        self._results['item'] = self.inputs.dictionary[self.inputs.key]
         return runtime
-
-    def _list_outputs(self):
-        outputs = self.output_spec().get()
-        outputs['item'] = self.__out_item_tmp
-        return outputs
 
 
 class DictToStringInputSpec(BaseInterfaceInputSpec):
@@ -139,7 +124,7 @@ class DictToStringOutputSpec(TraitedSpec):
     out = traits.Str()
 
 
-class DictToString(BaseInterface):
+class DictToString(SimpleInterface):
     """Equivalent to
 
     .. code-block:: python
@@ -153,55 +138,10 @@ class DictToString(BaseInterface):
     output_spec = DictToStringOutputSpec
 
     def _run_interface(self, runtime):
-        self.__out_str_tmp = '_'.join(('{}-{}'.format(keyval, self.inputs.dictionary[key])
-                                       for key, keyval in self.inputs.keys.items()
-                                       if key in self.inputs.dictionary))
+        self._results['out'] = '_'.join(('{}-{}'.format(keyval, self.inputs.dictionary[key])
+                                         for key, keyval in self.inputs.keys.items()
+                                         if key in self.inputs.dictionary))
         return runtime
-
-    def _list_outputs(self):
-        outputs = self.output_spec().get()
-        outputs['out'] = self.__out_str_tmp
-        return outputs
-#
-#
-# class NiftiTypeInputSpec(BaseInterfaceInputSpec):
-#     in_file = File(exists=True)
-#
-#
-# class NiftiTypeOutputSpec(TraitedSpec):
-#     write_byte = traits.Bool()
-#     write_short = traits.Bool()
-#     write_int = traits.Bool()
-#     write_float = traits.Bool()
-#     write_double = traits.Bool()
-#     write_signed = traits.Bool()
-#     write_unsigned = traits.Bool()
-#
-#
-# class NiftyType(BaseInterface):
-#     input_spec = NiftiTypeInputSpec
-#     output_spec = NiftiTypeOutputSpec
-#     typemap = {'b': 'write_byte',
-#                'h': 'write_short',
-#                'i': 'write_int',
-#                'f': 'write_float',
-#                'd': 'write_double'}
-#
-#     def _run_interface(self, runtime):
-#         t = nibabel.load(self.inputs.in_file).get_data_dtype()
-#         out = self._outputs().get()
-#         for k in out.keys():
-#             out[k] = False
-#         if t.kind == 'u':
-#             out['write_unsigned'] = True
-#         else:
-#             out['write_signed'] = True
-#         out[self.typemap[t.char.lower()]] = True
-#         self.__output_type_flags = out
-#         return runtime
-#
-#     def _list_outputs(self):
-#         return self.__output_type_flags
 
 
 class ConvertPointsInputSpec(BaseInterfaceInputSpec):
@@ -233,7 +173,7 @@ class ConvertPointsOutputSpec(TraitedSpec):
                     desc='Output file.')
 
 
-class ConvertPoints(BaseInterface):
+class ConvertPoints(SimpleInterface):
     """Convert a points file. Formats determined by which input/output
     traits are used.
     """
@@ -241,7 +181,13 @@ class ConvertPoints(BaseInterface):
     output_spec = ConvertPointsOutputSpec
 
     def _run_interface(self, runtime):
-        out = self._list_outputs()['out_file']
+        if self.inputs.out_format == 'tsv':
+            ext = '.tsv'
+        elif self.inputs.out_format == 'ants':
+            ext = '.csv'
+        elif self.inputs.out_format == 'minc':
+            ext = '.tag'
+        out = Path(Path(self.inputs.in_file).with_suffix(ext).name).resolve()
         if out.exists():
             raise RuntimeError(f'File {out} exists.')
         if self.inputs.in_format == 'tsv':
@@ -260,18 +206,8 @@ class ConvertPoints(BaseInterface):
             points.to_minc_tag(out)
         else:
             raise ValueError('Unsupported output format. This should be inpossible')
+        self._results['out_file'] = out
         return runtime
-
-    def _list_outputs(self):
-        out = self._outputs().get()
-        if self.inputs.out_format == 'tsv':
-            ext = '.tsv'
-        elif self.inputs.out_format == 'ants':
-            ext = '.csv'
-        elif self.inputs.out_format == 'minc':
-            ext = '.tag'
-        out['out_file'] = Path(Path(self.inputs.in_file).with_suffix(ext).name).resolve()
-        return out
 
 
 class Csv2TsvInputSpec(BaseInterfaceInputSpec):
@@ -284,26 +220,19 @@ class Csv2TsvOutputSpec(TraitedSpec):
     out_file = File(exists=True, desc='Output TSV file')
 
 
-class Csv2Tsv(BaseInterface):
+class Csv2Tsv(SimpleInterface):
     input_spec = Csv2TsvInputSpec
     output_spec = Csv2TsvOutputSpec
 
     def _run_interface(self, runtime):
-        out_file = self._gen_outfilename()
+        if isdefined(self.inputs.out_file):
+            out_file = self.inputs.out_file
+        else:
+            out_file = Path(Path(self.inputs.in_file).stem + '.tsv').resolve()
         if isdefined(self.inputs.header):
             header = self.inputs.header
         else:
             header = None
         csv2tsv(self.inputs.in_file, out_file, header=header)
+        self._results['out_file'] = out_file
         return runtime
-
-    def _gen_outfilename(self):
-        if isdefined(self.inputs.out_file):
-            return self.inputs.out_file
-        else:
-            return Path(Path(self.inputs.in_file).stem + '.tsv').resolve()
-
-    def _list_outputs(self):
-        out = self._outputs().get()
-        out['out_file'] = self._gen_outfilename()
-        return out

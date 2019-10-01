@@ -3,8 +3,8 @@ from nipype.interfaces.base import (Directory,
                                     TraitedSpec,
                                     traits,
                                     isdefined,
-                                    BaseInterface,
-                                    BaseInterfaceInputSpec)
+                                    BaseInterfaceInputSpec,
+                                    SimpleInterface)
 from nipype.interfaces import Rename
 from pathlib import Path
 from ..utils import write_labels, chunk, combine_stats_files, get_BIDSLayout_with_conf
@@ -42,7 +42,7 @@ class WriteBIDSFileOutputSpec(TraitedSpec):
     out_labelfile = File(desc='output label file name')
 
 
-class WriteBIDSFile(BaseInterface):
+class WriteBIDSFile(SimpleInterface):
     """Copy the input file to a file with a bids-style name"""
 
     input_spec = WriteBIDSFileInputSpec
@@ -55,15 +55,14 @@ class WriteBIDSFile(BaseInterface):
         for key, val in self.inputs.bidsparams.items():
             args[key] = val
         outfull = self.__make_and_prepare_bids_file(args)
-        self.__makebidspath_output_tmp = str(outfull)
+        self._results['out_file'] = str(outfull)
         shutil.copy(self.inputs.in_file, outfull)
-        self.__makebidspath_output_label_tmp = None
         if isdefined(self.inputs.labelinfo):
             args['extension'] = 'tsv'
             args['presuffix'] = args['suffix']
             args['suffix'] = 'labels'
             outtsv = self.__make_and_prepare_bids_file(args)
-            self.__makebidspath_output_label_tmp = str(outtsv)
+            self._results['out_labelfile'] = str(outtsv)
             write_labels(str(outtsv), self.inputs.labelinfo)
         return runtime
 
@@ -77,13 +76,6 @@ class WriteBIDSFile(BaseInterface):
             raise RuntimeError(f'{str(outfull)} already exists')
         outfull.parent.mkdir(parents=True, exist_ok=True)
         return outfull
-
-    def _list_outputs(self):
-        outputs = self.output_spec().get()
-        outputs['out_file'] = self.__makebidspath_output_tmp
-        if self.__makebidspath_output_label_tmp is not None:
-            outputs['out_labelfile'] = self.__makebidspath_output_label_tmp
-        return outputs
 
 
 class WriteFSLStatsInputSpec(BaseInterfaceInputSpec):
@@ -99,7 +91,7 @@ class WriteFSLStatsOutputSpec(TraitedSpec):
     out_tsv = traits.File(exists=True)
 
 
-class WriteFSLStats(BaseInterface):
+class WriteFSLStats(SimpleInterface):
     """Write a list of data to a TSV file. Designed to be used with ImageStats
 
     Example:
@@ -157,13 +149,8 @@ class WriteFSLStats(BaseInterface):
                         raise ValueError('Undefined label has nonzero data')
                 else:
                     writer.writerow([index, self.inputs.labels[index]] + datarow)
-        self.__out_tsv_tmp = str(outfile.resolve())
+        self._results['out_tsv'] = str(outfile.resolve())
         return runtime
-
-    def _list_outputs(self):
-        outputs = self.output_spec().get()
-        outputs['out_tsv'] = self.__out_tsv_tmp
-        return outputs
 
 
 class CombineStatsInputSpec(BaseInterfaceInputSpec):
@@ -182,7 +169,7 @@ class CombineStatsOutputSpec(TraitedSpec):
     out_tsv = traits.File(exists=True)
 
 
-class CombineStats(BaseInterface):
+class CombineStats(SimpleInterface):
     """interface wrapping :py:func:`pndniworkflows.utils.combine_stats_files`. See that function for details"""
 
     input_spec = CombineStatsInputSpec
@@ -204,13 +191,8 @@ class CombineStats(BaseInterface):
                                 strict=self.inputs.strict,
                                 index=index,
                                 ignore=ignore)
-        self.__out_tsv_tmp = str(outfile.resolve())
+        self._results['out_tsv'] = str(outfile.resolve())
         return runtime
-
-    def _list_outputs(self):
-        outputs = self.output_spec().get()
-        outputs['out_tsv'] = self.__out_tsv_tmp
-        return outputs
 
 
 class WriteFileInputSpec(BaseInterfaceInputSpec):
@@ -223,27 +205,21 @@ class WriteFileOutputSpec(TraitedSpec):
     out_file = File(exists=True, desc='output file name')
 
 
-class WriteFile(BaseInterface):
+class WriteFile(SimpleInterface):
     """Write a string to a file"""
 
     input_spec = WriteFileInputSpec
     output_spec = WriteFileOutputSpec
 
     def _run_interface(self, runtime):
-        with open(self._get_outfile(), 'w', newline=self.inputs.newline) as f:
-            f.write(self.inputs.string)
-        return runtime
-
-    def _get_outfile(self):
         if isdefined(self.inputs.out_file):
-            return Path(self.inputs.out_file).resolve()
+            out_file = Path(self.inputs.out_file).resolve()
         else:
-            return Path('outputfile.txt').resolve()
-
-    def _list_outputs(self):
-        outputs = self.output_spec().get()
-        outputs['out_file'] = str(self._get_outfile())
-        return outputs
+            out_file = Path('outputfile.txt').resolve()
+        with open(out_file, 'w', newline=self.inputs.newline) as f:
+            f.write(self.inputs.string)
+        self._results['out_file'] = str(out_file)
+        return runtime
 
 
 class MismatchedExtensionError(Exception):
@@ -272,7 +248,7 @@ class ExportFileOutputSpec(TraitedSpec):
     out_file = File(exists=True, desc='Output file name')
 
 
-class ExportFile(BaseInterface):
+class ExportFile(SimpleInterface):
     input_spec = ExportFileInputSpec
     output_spec = ExportFileOutputSpec
 
@@ -284,9 +260,5 @@ class ExportFile(BaseInterface):
         if self.inputs.check_extension and in_file.suffix != out_file.suffix:
             raise MismatchedExtensionError(f'{in_file} and {out_file} have different extensions')
         shutil.copy(str(in_file), str(out_file))
+        self._results['out_file'] = self.inputs.out_file
         return runtime
-
-    def _list_outputs(self):
-        outputs = self.output_spec().get()
-        outputs['out_file'] = self.inputs.out_file
-        return outputs
