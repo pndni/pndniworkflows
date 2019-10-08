@@ -175,7 +175,7 @@ class Classify(CommandLine):
     input_spec = ClassifyInputSpec
     output_spec = ClassifyOutputSpec
     _cmd = 'classify'
-    _terminal_output = 'file_stdout'
+    _terminal_output = 'file_split'
 
     def _run_interface(self, runtime):
         # inspired by afni OutlierCount
