@@ -127,3 +127,21 @@ class CombineLabels(CommandLine):
         outputs = self.output_spec().get()
         outputs['out_file'] = self._gen_outfilename()
         return outputs
+
+
+class ForceQFormInputSpec(CommandLineInputSpec):
+    in_file = File(exists=True, desc='Input NIFTI file', mandatory=True,
+                   argstr='%s', position=0)
+    out_file = File(argstr='%s', position=1, name_source=['in_file'],
+                    hash_files=False, name_template='%s_qform',
+                    keep_extension=True)
+
+
+class ForceQFormOutputSpec(TraitedSpec):
+    out_file = File(exists=True, desc='Output file')
+
+
+class ForceQForm(CommandLine):
+    input_spec = ForceQFormInputSpec
+    output_spec = ForceQFormOutputSpec
+    _cmd = 'forceqform'
