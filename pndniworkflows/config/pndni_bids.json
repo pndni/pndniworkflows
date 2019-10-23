@@ -14,7 +14,7 @@
 	"sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_run-{run}][_space-{space}][_label-{label}][_skullstripped-{skullstripped}][_desc-{desc}]_{suffix}.{extension<nii|nii\\.gz|json>}",
         "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_run-{run}][_space-{space}][_label-{label}][_skullstripped-{skullstripped}][_desc-{desc}]_{suffix<features>}.{extension<tsv>}",
         "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_run-{run}][_space-{space}][_label-{label}][_skullstripped-{skullstripped}][_desc-{desc}]_{presuffix<dseg|features>}_{suffix<labels>}.{extension<tsv>}",
-        "sub-{subject}[/ses-{session}]/xfm/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_run-{run}][_desc-{desc}]_from-{from_}_to-{to}_mode-{mode<image|points>}_{suffix<xfm>}.{extension<h5>}",
+        "sub-{subject}[/ses-{session}]/xfm/sub-{subject}[_ses-{session}][_acq-{acquisition}][_ce-{contrast}][_rec-{reconstruction}][_run-{run}][_desc-{desc}]_from-{from}_to-{to}_mode-{mode<image|points>}_{suffix<xfm>}.{extension<h5>}",
         "sub-{subject}[/ses-{session}]/sub-{subject}[_ses-{session}][_acq-{acquisition}][_rec-{reconstruction}][_run-{run}]_{suffix}.html",
         "sub-{subject}[/ses-{session}]/anat/sub-{subject}[_ses-{session}][_acq-{acquisition}][_rec-{reconstruction}][_run-{run}][_desc-{desc}]_{suffix<stats>}.{extension<tsv>}",
         "sub-{subject}[/ses-{session}]/sub-{subject}[_ses-{session}][_acq-{acquisition}][_rec-{reconstruction}][_run-{run}].{extension<html>}",
