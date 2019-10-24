@@ -145,3 +145,21 @@ class ForceQForm(CommandLine):
     input_spec = ForceQFormInputSpec
     output_spec = ForceQFormOutputSpec
     _cmd = 'forceqform'
+
+
+class MncDefaultDircosInputSpec(CommandLineInputSpec):
+    in_file = File(exists=True, desc='Input MINC 2.0 file', mandatory=True,
+                   argstr='%s', position=0)
+    out_file = File(argstr='%s', position=1, name_source=['in_file'],
+                    hash_files=False, name_template='%s_dircosfix',
+                    keep_extension=True)
+
+
+class MncDefaultDircosOutputSpec(TraitedSpec):
+    out_file = File(exists=True, desc='Output file')
+
+
+class MncDefaultDircos(CommandLine):
+    input_spec = MncDefaultDircosInputSpec
+    output_spec = MncDefaultDircosOutputSpec
+    _cmd = 'minc_default_dircos'
