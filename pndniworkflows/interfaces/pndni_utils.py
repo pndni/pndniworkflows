@@ -135,6 +135,7 @@ class ForceQFormInputSpec(CommandLineInputSpec):
     out_file = File(argstr='%s', position=1, name_source=['in_file'],
                     hash_files=False, name_template='%s_qform',
                     keep_extension=True)
+    maxangle = traits.Float(argstr='--maxangle %s', position=2)
 
 
 class ForceQFormOutputSpec(TraitedSpec):
