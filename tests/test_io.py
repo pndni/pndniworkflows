@@ -1,17 +1,9 @@
 from pndniworkflows.interfaces.io import WriteFSLStats, WriteBIDSFile, WriteFile, RenameAndCheckExtension, MismatchedExtensionError, ExportFile
 import pytest
-import os
 import csv
 from pathlib import Path
 from collections import OrderedDict
-
-
-@pytest.fixture()
-def cdtmppath(tmp_path):
-    curdir = os.getcwd()
-    os.chdir(str(tmp_path))
-    yield tmp_path
-    os.chdir(curdir)
+from utils import cdtmppath
 
 
 def test_write_bids(cdtmppath):
@@ -32,7 +24,7 @@ def test_write_bids(cdtmppath):
                  'sub-abc/anat/sub-abc_skullstripped-true_desc-nucor_T1w.nii', None),
                 ({'subject': '1', 'desc': 'brain', 'suffix': 'mask', 'space': 'T1w'}, testnii,
                  'sub-1/anat/sub-1_space-T1w_desc-brain_mask.nii', None),
-                ({'subject': '1', 'from_': 'MNI152', 'to': 'T1w', 'suffix': 'xfm', 'mode': 'image'}, testh5,
+                ({'subject': '1', 'from': 'MNI152', 'to': 'T1w', 'suffix': 'xfm', 'mode': 'image'}, testh5,
                  'sub-1/xfm/sub-1_from-MNI152_to-T1w_mode-image_xfm.h5', None),
                 ({'subject': '1', 'space': 'T1w', 'suffix': 'T1w', 'desc': 'MNI152'}, testnii,
                  'sub-1/anat/sub-1_space-T1w_desc-MNI152_T1w.nii', None),
