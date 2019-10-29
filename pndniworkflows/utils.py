@@ -10,6 +10,10 @@ from collections import defaultdict, OrderedDict, namedtuple
 from pkg_resources import resource_filename
 import io
 import re
+import numpy as np
+import nibabel
+from pathlib import Path
+from nipype.utils.filemanip import split_filename
 
 
 def get_BIDSLayout_with_conf(dir_, **kwargs):
@@ -567,3 +571,34 @@ def csv2tsv(input_file, output_file, header=None):
         writer.writerow(row)
         for row in reader:
             writer.writerow(row)
+
+
+def cutimage(T1, points, neckonly):
+    t1 = nibabel.load(T1)
+    aff = t1.affine
+    points_obj = Points.from_tsv(points)
+    points = []
+    for sp in points_obj.points:
+        points.append([float(sp.x), float(sp.y), float(sp.z), 1.0])
+    points = np.array(points)
+    voxel_coords = np.linalg.solve(aff, points.T)
+    if neckonly:
+        ind = np.argmax(np.abs(aff[2, :3]))
+        inf_to_sup = aff[2, ind] >= 0
+        if inf_to_sup:
+            start = max(int(np.floor(np.min(voxel_coords[ind]))), 0)
+            stop = t1.shape[ind]
+        else:
+            start = 0
+            stop = min(int(np.ceil(np.max(voxel_coords[ind]))) + 1, t1.shape[ind])
+        slice_ = [slice(None), slice(None), slice(None)]
+        slice_[ind] = slice(start, stop)
+    else:
+        slice_ = tuple(slice(max(int(np.floor(np.min(voxel_coords[ind, :]))), 0),
+                             min(int(np.ceil(np.max(voxel_coords[ind, :]))) + 1, t1.shape[ind]))
+                       for ind in range(3))
+    out = t1.slicer[tuple(slice_)]
+    _, stem, ext = split_filename(T1)
+    outname = str(Path(stem + '_cropped' + ext).resolve())
+    out.to_filename(outname)
+    return outname

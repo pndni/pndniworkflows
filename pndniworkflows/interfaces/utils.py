@@ -7,7 +7,7 @@ from nipype.interfaces.base import (traits,
                                     StdOutCommandLine,
                                     StdOutCommandLineInputSpec)
 from nipype.algorithms.misc import Gunzip
-from pndniworkflows.utils import Points, csv2tsv
+from pndniworkflows.utils import Points, csv2tsv, cutimage
 from pathlib import Path
 
 
@@ -235,4 +235,26 @@ class Csv2Tsv(SimpleInterface):
             header = None
         csv2tsv(self.inputs.in_file, out_file, header=header)
         self._results['out_file'] = out_file
+        return runtime
+
+
+class CutImageInputSpec(BaseInterfaceInputSpec):
+    in_file = File(exists=True, desc='Input file to cut', mandatory=True)
+    points_file = File(exists=True, desc='TSV file with points either indicating box or cutting plane', mandatory=True)
+    neckonly = traits.Bool(True, desc='If true, cut off image below inferior-most point. Otherwise, cut to box around points')
+
+
+class CutImageOutputSpec(TraitedSpec):
+    out_file = File(exists=True, desc='Cut file')
+
+
+class CutImage(SimpleInterface):
+    input_spec = CutImageInputSpec
+    output_spec = CutImageOutputSpec
+
+    def _run_interface(self, runtime):
+        outfile = cutimage(self.inputs.in_file,
+                           self.inputs.points_file,
+                           self.inputs.neckonly)
+        self._results['out_file'] = outfile
         return runtime

@@ -10,6 +10,15 @@ Workflows
       from pndniworkflows.preprocessing import neck_removal_wf
       wf = neck_removal_wf()
 
+.. autofunction:: pndniworkflows.preprocessing.crop_wf
+
+   .. workflow::
+      :graph2use: flat
+      :simple_form: no
+
+      from pndniworkflows.preprocessing import crop_wf
+      wf = crop_wf()
+
 .. autofunction:: pndniworkflows.postprocessing.image_stats_wf
 
    .. workflow::

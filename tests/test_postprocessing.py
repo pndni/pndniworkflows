@@ -6,14 +6,7 @@ import csv
 import numpy as np
 import nibabel
 from pathlib import Path
-
-
-@pytest.fixture()
-def cdtmppath(tmp_path):
-    curdir = os.getcwd()
-    os.chdir(str(tmp_path))
-    yield tmp_path
-    os.chdir(curdir)
+from utils import cdtmppath
 
 
 @pytest.fixture()
