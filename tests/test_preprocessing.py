@@ -30,18 +30,16 @@ def test_cutimage(cdtmppath, inpoints, truth):
     cutimage('in.nii', 'points.tsv', False)
     niout = nibabel.load('in_cropped.nii')
     assert np.all(niout.get_fdata() == arr[truth])
-    for model in [True, False]:
-        wfwrapper = pe.Workflow('wrapper')
-        wf = crop_wf()
-        wf.inputs.inputspec.T1 = os.path.abspath('in.nii')
-        wf.inputs.inputspec.points = os.path.abspath('points.tsv')
-        if model:
-            wf.inputs.inputspec.model = os.path.abspath('in.nii')
-        export = pe.Node(ExportFile(out_file=os.path.abspath('out2.nii'), clobber=True), 'exp')
-        wfwrapper.connect(wf, 'outputspec.cropped', export, 'in_file')
-        wfwrapper.run()
-        niout2 = nibabel.load('out2.nii')
-        assert np.all(niout2.get_fdata() == arr[truth])
+    wfwrapper = pe.Workflow('wrapper')
+    wf = crop_wf(False)
+    wf.inputs.inputspec.T1 = os.path.abspath('in.nii')
+    wf.inputs.inputspec.points = os.path.abspath('points.tsv')
+    wf.inputs.inputspec.model = os.path.abspath('in.nii')
+    export = pe.Node(ExportFile(out_file=os.path.abspath('out2.nii'), clobber=True), 'exp')
+    wfwrapper.connect(wf, 'outputspec.cropped', export, 'in_file')
+    wfwrapper.run()
+    niout2 = nibabel.load('out2.nii')
+    assert np.all(niout2.get_fdata() == arr[truth])
 
 
 @pytest.mark.parametrize('inpoints,limits,truth', NECKEXPS)
@@ -55,15 +53,12 @@ def test_cropneck(cdtmppath, inpoints, limits, truth):
     cutimage('in.nii', 'points.tsv', True)
     niout = nibabel.load('in_cropped.nii')
     assert np.all(niout.get_fdata() == arr[:, :, truth])
-    for model in [True, False]:
-        wfwrapper = pe.Workflow('wrapper')
-        wf = neck_removal_wf()
-        wf.inputs.inputspec.T1 = os.path.abspath('in.nii')
-        wf.inputs.inputspec.limits = limits
-        if model:
-            wf.inputs.inputspec.model = os.path.abspath('in.nii')
-        export = pe.Node(ExportFile(out_file=os.path.abspath('out2.nii'), clobber=True), 'exp')
-        wfwrapper.connect(wf, 'outputspec.cropped', export, 'in_file')
-        wfwrapper.run()
-        niout2 = nibabel.load('out2.nii')
-        assert np.all(niout2.get_fdata() == arr[:, :, truth])
+    wfwrapper = pe.Workflow('wrapper')
+    wf = neck_removal_wf(False)
+    wf.inputs.inputspec.T1 = os.path.abspath('in.nii')
+    wf.inputs.inputspec.limits = limits
+    export = pe.Node(ExportFile(out_file=os.path.abspath('out2.nii'), clobber=True), 'exp')
+    wfwrapper.connect(wf, 'outputspec.cropped', export, 'in_file')
+    wfwrapper.run()
+    niout2 = nibabel.load('out2.nii')
+    assert np.all(niout2.get_fdata() == arr[:, :, truth])

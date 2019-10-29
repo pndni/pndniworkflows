@@ -19,7 +19,7 @@ def writepoints(limits):
     return str(Path('points.tsv').resolve())
 
 
-def neck_removal_wf():
+def neck_removal_wf(usemodel):
     """Create a workflow to to remove the neck. This workflow requires a
     model image (e.g. an MNI standard) and points on that image. The model
     is registered to the T1 image, and the points transformed into T1 space.
@@ -42,7 +42,7 @@ def neck_removal_wf():
     wpoints = pe.Node(Function(input_names=['limits'], output_names=['points'], function=writepoints), name='write_points')
     cut = pe.Node(CutImage(neckonly=True), name='cut')
     outputspec = pe.Node(IdentityInterface(['cropped']), name='outputspec')
-    if isdefined(inputspec.inputs.model):
+    if usemodel:
         trpoints = _tr_points_wf()
         wf.connect([(inputspec, trpoints, [('T1', 'inputspec.T1'),
                                            ('model', 'inputspec.model')]),
@@ -56,7 +56,7 @@ def neck_removal_wf():
     return wf
 
 
-def crop_wf():
+def crop_wf(usemodel):
     """Create a workflow to to crop the image. This workflow requires a
     model image (e.g. an MNI standard) and points on that image. The model
     is registered to the T1 image, and the points transformed into T1 space.
@@ -79,7 +79,7 @@ def crop_wf():
     inputspec = pe.Node(IdentityInterface(['T1', 'model', 'points']), name='inputspec')
     cut = pe.Node(CutImage(neckonly=False), name='cut')
     outputspec = pe.Node(IdentityInterface(['cropped']), name='outputspec')
-    if isdefined(inputspec.inputs.model):
+    if usemodel:
         trpoints = _tr_points_wf()
         wf.connect([(inputspec, trpoints, [('T1', 'inputspec.T1'),
                                            ('model', 'inputspec.model'),
