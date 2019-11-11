@@ -11,8 +11,8 @@ from utils import cdtmppath
 
 @pytest.fixture()
 def niifiles(cdtmppath):
-    x = np.array([1, 2, 3, 4, 5])
-    im = np.array([1, 1, 0, 3, 0])
+    x = np.array([4, 16, 16, 4, 5])
+    im = np.array([1, 1, 1, 3, 0])
     affine = np.array([[2.0, 0.0, 0.0, 0.0],
                        [0.0, 1.0, 0.0, 0.0],
                        [0.0, 0.0, 1.0, 0.0],
@@ -24,9 +24,17 @@ def niifiles(cdtmppath):
     return str(Path('x.nii').resolve()), str(Path('im.nii').resolve()), labels, cdtmppath
 
 
+_stats_exps = ((['volume', 'mean'], ['number_voxels', 'volume', 'mean'], ['3.0', '6.0', '12.0'], ['1.0', '2.0', '4.0']),
+               (['median'], ['median'], ['16.0'], ['4.0']),
+               (['volume', 'median', 'mean'], ['number_voxels', 'volume', 'mean', 'median'], ['3.0', '6.0', '12.0', '16.0'], ['1.0', '2.0', '4.0', '4.0']),
+               (['median', 'volume', 'mean'], ['number_voxels', 'volume', 'mean', 'median'],  ['3.0', '6.0', '12.0', '16.0'], ['1.0', '2.0', '4.0', '4.0']),
+               (['kurtosis', 'volume', 'median', 'mean'], ['number_voxels', 'volume', 'mean', 'kurtosis', 'median'],  ['3.0', '6.0', '12.0', '-1.5', '16.0'], ['1.0', '2.0', '4.0', '-3.0', '4.0']))
+
+
 @pytest.mark.skipif(os.getenv('FSLDIR') is None, reason='FSL not loaded')
-def test_image_stats_wf(niifiles):
-    wf = postprocessing.image_stats_wf(['volume', 'mean'], niifiles[2], 'testwf')
+@pytest.mark.parametrize('stats,truth_header,truth1,truth2', _stats_exps)
+def test_image_stats_wf(niifiles, stats, truth_header, truth1, truth2):
+    wf = postprocessing.image_stats_wf(stats, niifiles[2], 'testwf')
     wf.inputs.inputspec.in_file = niifiles[0]
     wf.inputs.inputspec.index_mask_file = niifiles[1]
     wd = niifiles[3] / 'wd'
@@ -37,6 +45,6 @@ def test_image_stats_wf(niifiles):
     with open(out, 'r') as f:
         reader = csv.reader(f, delimiter='\t')
         header, data1, data3 = list(reader)
-        assert header == ['index', 'name', 'number_voxels', 'volume', 'mean']
-        assert data1 == ['1', 'T1', '2.0', '4.0', '1.5']
-        assert data3 == ['3', 'T3', '1.0', '2.0', '4.0']
+        assert header == ['index', 'name'] + truth_header
+        assert data1 == ['1', 'T1'] + truth1
+        assert data3 == ['3', 'T3'] + truth2

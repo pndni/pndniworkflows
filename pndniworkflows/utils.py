@@ -13,6 +13,7 @@ import numpy as np
 import nibabel
 from pathlib import Path
 from nipype.utils.filemanip import split_filename
+from pndni.convertpoints import Points
 
 
 def get_BIDSLayout_with_conf(dir_, **kwargs):

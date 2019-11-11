@@ -1,7 +1,8 @@
 import nibabel
 import numpy as np
 from utils import cdtmppath
-from pndniworkflows.utils import Points, SinglePoint, cutimage
+from pndni.convertpoints import Points, SinglePoint
+from pndniworkflows.utils import cutimage
 from pndniworkflows.preprocessing import crop_wf, neck_removal_wf
 from pndniworkflows.interfaces.io import ExportFile
 import pytest

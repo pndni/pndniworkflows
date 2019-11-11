@@ -1,5 +1,5 @@
 from pndniworkflows import utils
-from pndniworkflows.interfaces.utils import ConvertPoints, Gzip, Csv2Tsv
+from pndniworkflows.interfaces.utils import Gzip, Csv2Tsv, Zipper
 from collections import OrderedDict
 import pytest
 from io import StringIO
@@ -427,3 +427,23 @@ def test_csv_to_tsv(tmp_path, runner):
     assert _read(out_file) == 'a1\ta2\r\nh1\th2\r\n1\t2\r\n3\t4\r\n'
     with pytest.raises(RuntimeError):
         runner(in_file, out_file, header=['a1'])
+
+
+def test_Zipper():
+    l1 = [1, 2, 3, 4, 5, 6]
+    l2 = [100, 101, 102, 103]
+    i = Zipper(chunksize1=3, chunksize2=2, list1=l1, list2=l2)
+    r = i.run()
+    assert r.outputs.out_list == [1, 2, 3, 100, 101, 4, 5, 6, 102, 103]
+    i = Zipper(chunksize1=4, chunksize2=2, list1=l1, list2=l2)
+    with pytest.raises(RuntimeError):
+        i.run()
+    i = Zipper(chunksize1=3, chunksize2=4, list1=l1, list2=l2)
+    with pytest.raises(RuntimeError):
+        i.run()
+    i = Zipper(chunksize1=3, chunksize2=2, list1=l1, list2=l2[:2])
+    with pytest.raises(RuntimeError):
+        i.run()
+    i = Zipper(chunksize1=3, chunksize2=2, list1=l1[:3], list2=l2)
+    with pytest.raises(RuntimeError):
+        i.run()

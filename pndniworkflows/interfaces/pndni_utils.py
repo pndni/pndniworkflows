@@ -169,6 +169,35 @@ class MncDefaultDircos(CommandLine):
     _cmd = 'minc_default_dircos'
 
 
+class StatsInputSpec(CommandLineInputSpec):
+    in_file = File(exists=True, desc='Input file', mandatory=True,
+                   argstr='%s', position=0)
+    index_mask_file = File(exists=True, desc='Mask file',
+                           argstr='-K %s', position=1)
+    op_string = traits.Str(desc='May contain "-m", "-s", "--median", '
+                                '"--skew", and/or "--kurtosis", separated by spaces',
+                           argstr='%s', position=2)
+
+
+class StatsOutputSpec(TraitedSpec):
+    out_stat = traits.List(traits.Float())
+
+
+class Stats(CommandLine):
+    input_spec = StatsInputSpec
+    output_spec = StatsOutputSpec
+    _cmd = 'stats'
+    _terminal_output = 'file_stdout'
+
+    def _run_interface(self, runtime):
+        super(Stats, self)._run_interface(runtime)
+        self._results = {'out_stat': [float(out) for out in runtime.stdout.split()]}
+        return runtime
+
+    def _list_outputs(self):
+        return self._results
+
+
 class ConvertPointsInputSpec(BaseInterfaceInputSpec):
     in_file = File(exists=True,
                    desc='Input file.')

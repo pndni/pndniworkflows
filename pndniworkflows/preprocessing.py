@@ -2,9 +2,8 @@ from nipype.pipeline import engine as pe
 from nipype import IdentityInterface, Function
 from .registration import ants_registration_affine_node
 from nipype.interfaces.ants.resampling import ApplyTransformsToPoints
-from nipype.interfaces.base import isdefined
-from .interfaces.utils import ConvertPoints, CutImage
-from .utils import Points, SinglePoint
+from .interfaces.utils import CutImage
+from .interfaces.pndni_utils import ConvertPoints
 
 
 def writepoints(limits):

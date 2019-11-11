@@ -4,21 +4,26 @@ from nipype.interfaces.fsl import ImageStats
 from collections import namedtuple
 from . import utils
 from .interfaces.io import WriteFSLStats
+from .interfaces.pndni_utils import Stats
+from .interfaces.utils import Zipper
 
 
-StatDesc = namedtuple('StatDesc', ['flag', 'names'])
+StatDesc = namedtuple('StatDesc', ['flag', 'names', 'fsl'])
 
 
-STATS = {'robustminmax': StatDesc('-r', ['robust_min', 'robust_max']),
-         'minmax': StatDesc('-R', ['min', 'max']),
-         'meanentropy': StatDesc('-e', ['mean_entropy']),
-         'meanentropy_nz': StatDesc('-E', ['mean_entropy_nonzero_voxels']),
-         'volume': StatDesc('-v', ['number_voxels', 'volume']),
-         'volume_nz': StatDesc('-V', ['number_nonzero_voxels', 'volume_nonzero_voxels']),
-         'mean': StatDesc('-m', ['mean']),
-         'mean_nz': StatDesc('-M', ['mean_nonzero_voxels']),
-         'std': StatDesc('-s', ['standard_deviation']),
-         'std_nz': StatDesc('-S', ['standard_deviation_nonzero_voxels'])}
+STATS = {'robustminmax': StatDesc('-r', ['robust_min', 'robust_max'], True),
+         'minmax': StatDesc('-R', ['min', 'max'], True),
+         'meanentropy': StatDesc('-e', ['mean_entropy'], True),
+         'meanentropy_nz': StatDesc('-E', ['mean_entropy_nonzero_voxels'], True),
+         'volume': StatDesc('-v', ['number_voxels', 'volume'], True),
+         'volume_nz': StatDesc('-V', ['number_nonzero_voxels', 'volume_nonzero_voxels'], True),
+         'mean': StatDesc('-m', ['mean'], True),
+         'mean_nz': StatDesc('-M', ['mean_nonzero_voxels'], True),
+         'std': StatDesc('-s', ['standard_deviation'], True),
+         'std_nz': StatDesc('-S', ['standard_deviation_nonzero_voxels'], True),
+         'median': StatDesc('--median', ['median'], False),
+         'skew': StatDesc('--skew', ['skew'], False),
+         'kurtosis': StatDesc('--kurtosis', ['kurtosis'], False)}
 
 
 def image_stats_wf(stat_keys, labels, name):
@@ -45,18 +50,39 @@ def image_stats_wf(stat_keys, labels, name):
     """
     wf = pe.Workflow(name)
     stats = [STATS[key] for key in stat_keys]
-    op_string = ' '.join((stat.flag for stat in stats))
+    fsl_op_string = ' '.join((stat.flag for stat in stats if stat.fsl))
+    stats_op_string = ' '.join((stat.flag for stat in stats if not stat.fsl))
     inputspec = pe.Node(IdentityInterface(['in_file', 'index_mask_file']), 'inputspec')
-    imagestats = pe.Node(ImageStats(op_string=op_string), 'imagestats')
+    if fsl_op_string:
+        fslimagestats = pe.Node(ImageStats(op_string=fsl_op_string), 'fslimagestats')
+    if stats_op_string:
+        statsimagestats = pe.Node(Stats(op_string=stats_op_string), 'statsimagestats')
     write = pe.Node(WriteFSLStats(), 'write')
-    header = []
+    fsl_header = []
+    stats_header = []
     for stat in stats:
-        header += stat.names
+        if stat.fsl:
+            fsl_header += stat.names
+        else:
+            stats_header += stat.names
+    header = fsl_header + stats_header
     write.inputs.statnames = header
     write.inputs.labels = utils.labels2dict(labels, 'name')
     outputspec = pe.Node(IdentityInterface(['out_file']), 'outputspec')
-    wf.connect([(inputspec, imagestats, [('in_file', 'in_file'),
-                                         ('index_mask_file', 'index_mask_file')]),
-                (imagestats, write, [('out_stat', 'data')]),
-                (write, outputspec, [('out_tsv', 'out_file')])])
+    if fsl_op_string:
+        wf.connect([(inputspec, fslimagestats, [('in_file', 'in_file'),
+                                                ('index_mask_file', 'index_mask_file')])])
+    if stats_op_string:
+        wf.connect([(inputspec, statsimagestats, [('in_file', 'in_file'),
+                                                  ('index_mask_file', 'index_mask_file')])])
+    if fsl_op_string and stats_op_string:
+        zipper = pe.Node(Zipper(chunksize1=len(fsl_header), chunksize2=len(stats_header)), 'zipper')
+        wf.connect(fslimagestats, 'out_stat', zipper, 'list1')
+        wf.connect(statsimagestats, 'out_stat', zipper, 'list2')
+        wf.connect(zipper, 'out_list', write, 'data')
+    elif fsl_op_string:
+        wf.connect(fslimagestats, 'out_stat', write, 'data')
+    elif stats_op_string:
+        wf.connect(statsimagestats, 'out_stat', write, 'data')
+    wf.connect(write, 'out_tsv', outputspec, 'out_file')
     return wf

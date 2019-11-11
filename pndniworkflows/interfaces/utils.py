@@ -192,3 +192,41 @@ class CutImage(SimpleInterface):
                            self.inputs.neckonly)
         self._results['out_file'] = outfile
         return runtime
+
+
+class ZipperInputSpec(BaseInterfaceInputSpec):
+    list1 = traits.List(mandatory=True)
+    list2 = traits.List(mandatory=True)
+    chunksize1 = traits.Int(1, usedefault=True)
+    chunksize2 = traits.Int(1, usedefault=True)
+
+
+class ZipperOutputSpec(TraitedSpec):
+    out_list = traits.List()
+
+
+def _chunk_list(x, n):
+    for i in range(len(x) // n):
+        yield x[i * n:(i + 1) * n]
+
+
+class Zipper(SimpleInterface):
+    input_spec = ZipperInputSpec
+    output_spec = ZipperOutputSpec
+
+    def _run_interface(self, runtime):
+        out = []
+        nl1 = len(self.inputs.list1)
+        nl2 = len(self.inputs.list2)
+        c1 = self.inputs.chunksize1
+        c2 = self.inputs.chunksize2
+        if nl1 % c1 != 0 or nl2 % c2 != 0:
+            raise RuntimeError('List length must be an integer multiple of chunksize')
+        if nl1 // c1 != nl2 // c2:
+            raise RuntimeError('List length divided by chunksize must be the same')
+        for l1, l2 in zip(_chunk_list(self.inputs.list1, c1),
+                          _chunk_list(self.inputs.list2, c2)):
+            out.extend(l1)
+            out.extend(l2)
+        self._results['out_list'] = out
+        return runtime

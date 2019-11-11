@@ -1,7 +1,7 @@
 import numpy as np
 import nibabel
 import pytest
-from pndniworkflows.interfaces.pndni_utils import ForceQForm, ConvertPoints
+from pndniworkflows.interfaces.pndni_utils import ForceQForm, ConvertPoints, Stats
 from nipype.utils.filemanip import indirectory
 import tempfile
 import os
@@ -82,3 +82,23 @@ def test_ConvertPoints(points_path, in_format, points_file, out_format, out_file
     i = ConvertPoints(in_format=in_format, in_file=points_path / points_file, out_format=out_format)
     r = i.run()
     cmp(r.outputs.out_file, points_path / out_file)
+
+
+def test_Stats(tmp_path):
+
+    inputfile = str(tmp_path / 'in.nii')
+    maskfile = str(tmp_path / 'out.nii')
+    input = np.arange(3 * 4 * 5).reshape(3, 4, 5).astype(np.float)
+    mask = np.zeros(input.shape, dtype=np.int)
+    mask[:2, 0, -1] = 1
+    mask[1, 1:3, 1:3] = 2
+    mask[2, 1, 1] = 4
+    assert tuple(np.unique(mask)) == (0, 1, 2, 4)
+    nibabel.Nifti1Image(input, np.eye(4)).to_filename(inputfile)
+    nibabel.Nifti1Image(mask, np.eye(4)).to_filename(maskfile)
+
+    i = Stats(op_string='-m -m', in_file=inputfile, index_mask_file=maskfile)
+    r = i.run()
+    means = np.array([np.mean(input[mask == i]) for i in range(1, 5)])
+    means[np.isnan(means)] = 0.0
+    assert np.all(r.outputs.out_stat == np.repeat(means, 2))
