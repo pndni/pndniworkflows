@@ -1,6 +1,8 @@
 """Interfaces for `pndni_utils <https://github.com/pndni/pndni_utils>`_"""
 from nipype.interfaces.base import (CommandLine,
                                     CommandLineInputSpec,
+                                    BaseInterfaceInputSpec,
+                                    SimpleInterface,
                                     File,
                                     TraitedSpec,
                                     traits,
@@ -8,6 +10,7 @@ from nipype.interfaces.base import (CommandLine,
                                     OutputMultiPath)
 import os
 from pathlib import Path
+from pndni.convertpoints import Points
 
 
 # from BEP011 (https://docs.google.com/document/d/1YG2g4UkEio4t_STIBOqYOwneLEs1emHIXbGKynx7V0Y/edit#heading=h.mqkmyp254xh6)
@@ -164,3 +167,69 @@ class MncDefaultDircos(CommandLine):
     input_spec = MncDefaultDircosInputSpec
     output_spec = MncDefaultDircosOutputSpec
     _cmd = 'minc_default_dircos'
+
+
+class ConvertPointsInputSpec(BaseInterfaceInputSpec):
+    in_file = File(exists=True,
+                   desc='Input file.')
+    in_format = traits.Enum('tsv', 'ants', 'minc',
+                            desc="""Input file format.
+
+"tsv": a TSV file with "x", "y", "z", and "index"
+        columns (of types float, float, float, and int, respectively). All other
+        columns will be ignored
+
+"ants": A CSV file with "x", "y", "z", and "index"
+        columns (of types float, float, float, and int, respectively). All other
+        columns will be ignored. The x and y columns will be multiplied by -1.0
+        (ants uses LPS while this class uses RAS).
+
+"minc": a '`minc tag file <https://en.wikibooks.org/wiki/MINC/SoftwareDevelopment/Tag_file_format_reference>`_'.
+        In this case, we assume each point has 7 parameters, and that the text label is quoted. Therefore
+        it is more restrictive than the linked specification. All information besides x, y, z, and label
+        are ignored.
+""")
+    out_format = traits.Enum('tsv', 'ants', 'minc',
+                             desc='Output type.')
+
+
+class ConvertPointsOutputSpec(TraitedSpec):
+    out_file = File(exists=True,
+                    desc='Output file.')
+
+
+class ConvertPoints(SimpleInterface):
+    """Convert a points file. Formats determined by which input/output
+    traits are used.
+    """
+    input_spec = ConvertPointsInputSpec
+    output_spec = ConvertPointsOutputSpec
+
+    def _run_interface(self, runtime):
+        if self.inputs.out_format == 'tsv':
+            ext = '.tsv'
+        elif self.inputs.out_format == 'ants':
+            ext = '.csv'
+        elif self.inputs.out_format == 'minc':
+            ext = '.tag'
+        out = Path(Path(self.inputs.in_file).with_suffix(ext).name).resolve()
+        if out.exists():
+            raise RuntimeError(f'File {out} exists.')
+        if self.inputs.in_format == 'tsv':
+            points = Points.from_tsv(self.inputs.in_file)
+        elif self.inputs.in_format == 'ants':
+            points = Points.from_ants_csv(self.inputs.in_file)
+        elif self.inputs.in_format == 'minc':
+            points = Points.from_minc_tag(self.inputs.in_file)
+        else:
+            raise ValueError('Unsupported input format. This should be inpossible')
+        if self.inputs.out_format == 'tsv':
+            points.to_tsv(out)
+        elif self.inputs.out_format == 'ants':
+            points.to_ants_csv(out)
+        elif self.inputs.out_format == 'minc':
+            points.to_minc_tag(out)
+        else:
+            raise ValueError('Unsupported output format. This should be inpossible')
+        self._results['out_file'] = out
+        return runtime

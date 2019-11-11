@@ -6,10 +6,9 @@ from nipype.interfaces.utility import IdentityInterface
 import os
 import csv
 from itertools import product
-from collections import defaultdict, OrderedDict, namedtuple
+from collections import defaultdict, OrderedDict
 from pkg_resources import resource_filename
 import io
-import re
 import numpy as np
 import nibabel
 from pathlib import Path
@@ -447,116 +446,6 @@ def tsv_to_flat_dict(tsvfile, index=None, ignore=None):
                     raise RuntimeError('Duplicate keys while flattening tsv file')
                 out[outkey] = rowitem
     return out
-
-
-SinglePoint = namedtuple('SinglePoint', ['x', 'y', 'z', 'index'])
-
-
-class Points(object):
-
-    def __init__(self, points):
-        """points is a list or tuple of SinglePoints"""
-        self.points = tuple(points)
-
-    def to_tsv(self, outfile):
-        """Write the data to a TSV file"""
-        with open(outfile, 'w', newline='') as f:
-            writer = csv.DictWriter(f, delimiter='\t', fieldnames=SinglePoint._fields)
-            writer.writeheader()
-            for point in self.points:
-                writer.writerow(point._asdict())
-
-    @classmethod
-    def from_tsv(cls, infile):
-        """Initialize Points object from a TSV file with "x", "y", "z", and "index"
-        columns (of types float, float, float, and int, respectively). All other
-        columns will be ignored"""
-        with open(infile, 'r', newline='') as f:
-            reader = csv.DictReader(f, delimiter='\t')
-            points = [SinglePoint(float(row['x']),
-                                  float(row['y']),
-                                  float(row['z']),
-                                  int(row['index']))
-                      for row in reader]
-        return cls(points)
-
-    def to_ants_csv(self, outfile):
-        """Write an ANTS style CSV file. The t column is set to 0.0.
-        The x and y columns will be multiplied by -1.0
-        (ants uses LPS while this class uses RAS).
-        """
-        with open(outfile, 'w', newline='') as f:
-            writer = csv.DictWriter(f, delimiter=',', fieldnames=list(SinglePoint._fields) + ['t'])
-            writer.writeheader()
-            for point in self.points:
-                writer.writerow({'x': -1.0 * point.x,
-                                 'y': -1.0 * point.y,
-                                 'z': point.z,
-                                 'index': point.index,
-                                 't': 0.0})
-
-    @classmethod
-    def from_ants_csv(cls, infile):
-        """Initialize Points object from a CSV file with "x", "y", "z", and "index"
-        columns (of types float, float, float, and int, respectively). All other
-        columns will be ignored. The x and y columns will be multiplied by -1.0
-        (ants uses LPS while this class uses RAS)."""
-        with open(infile, 'r', newline='') as f:
-            reader = csv.DictReader(f, delimiter=',')
-            points = []
-            for row in reader:
-                points.append(SinglePoint(-1.0 * float(row['x']),
-                                          -1.0 * float(row['y']),
-                                          float(row['z']),
-                                          int(row['index'])))
-        return cls(points)
-
-    def to_minc_tag(self, outfile):
-        """Write a
-        '`minc tag file <https://en.wikibooks.org/wiki/MINC/SoftwareDevelopment/Tag_file_format_reference>`_'.
-        the weight, structure ID, and patient ID are set to 0, -1, and -1, respectively"""
-        with open(outfile, 'w') as f:
-            f.write('MNI Tag Point File\nVolumes = 1;\nPoints =')
-            for i, point in enumerate(self.points):
-                f.write(f'\n {point.x} {point.y} {point.z} 0 -1 -1 "{point.index}"')
-            f.write(';\n')
-
-    @classmethod
-    def from_minc_tag(cls, infile):
-        """Initialize Points object from a
-        '`minc tag file <https://en.wikibooks.org/wiki/MINC/SoftwareDevelopment/Tag_file_format_reference>`_'.
-        In this case, we assume each point has 7 parameters, and that the text label is quoted. Therefore
-        it is more restrictive than the linked specification. All information besides x, y, z, and label
-        are ignored.
-        """
-        points = []
-        with open(infile, 'r') as f:
-            contents = f.read()
-            # remove comments
-            contents = re.sub('[#%][^\n]*\n', '\n', contents)
-            match = re.match(r'MNI Tag Point File\n+Volumes = [12];\n+\s*Points =([^;]*);', contents)
-            pointsstr = match.group(1)
-            pointssplit = pointsstr.split()
-            npoints = len(pointssplit) // 7
-            if npoints != len(pointssplit) / 7.0:
-                raise RuntimeError('MNI Tags file must have 7 fields per point')
-            for i in range(npoints):
-                row = pointssplit[i * 7:(i + 1) * 7]
-                index = row[6]
-                if index[0] != '"' or index[-1] != '"':
-                    raise RuntimeError("index must be surrounded by quotes")
-                index = index[1:-1]
-                points.append(SinglePoint(float(row[0]),
-                                          float(row[1]),
-                                          float(row[2]),
-                                          int(index)))
-        return cls(points)
-
-    def __len__(self):
-        return len(self.points)
-
-    def __eq__(self, other):
-        return len(self) == len(other) and self.points == other.points
 
 
 def csv2tsv(input_file, output_file, header=None):

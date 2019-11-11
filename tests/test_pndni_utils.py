@@ -1,8 +1,16 @@
 import numpy as np
 import nibabel
 import pytest
-from pndniworkflows.interfaces.pndni_utils import ForceQForm
+from pndniworkflows.interfaces.pndni_utils import ForceQForm, ConvertPoints
 from nipype.utils.filemanip import indirectory
+import tempfile
+import os
+import csv
+
+
+def cmp(f1, f2):
+    with open(f1, 'r', newline='') as i1, open(f2, 'r', newline='') as i2:
+        return i1.read() == i2.read()
 
 
 @pytest.mark.parametrize('testtype', ['qform', 'sform', 'both', 'none'])
@@ -38,3 +46,39 @@ def test_forceqform(tmp_path, testtype):
     assert np.all(nout.affine == affine)
     assert np.all(nout.get_qform() == affine)
     assert nout.get_sform(coded=True)[1] == 0
+
+
+@pytest.fixture
+def cleandir():
+    os.chdir(tempfile.mkdtemp())
+
+
+@pytest.fixture
+def points_path(tmp_path):
+    (tmp_path / 'mni.tag').write_text("""MNI Tag Point File
+Volumes = 1;
+Points =
+ 1.1 1.2 1.3 0 -1 -1 "10"
+ 2.1 2.2 2.3 0 -1 -1 "20";
+""")
+    with open(tmp_path / 'ants.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['x', 'y', 'z', 'index', 't'])
+        writer.writerow([-1.1, -1.2, 1.3, 10, 0.0])
+        writer.writerow([-2.1, -2.2, 2.3, 20, 0.0])
+
+    with open(tmp_path / 'simple.tsv', 'w', newline='') as f:
+        writer = csv.writer(f, delimiter='\t')
+        writer.writerow(['x', 'y', 'z', 'index'])
+        writer.writerow([1.1, 1.2, 1.3, 10, 0.0])
+        writer.writerow([2.1, 2.2, 2.3, 20, 0.0])
+    return tmp_path
+
+
+@pytest.mark.usefixtures('cleandir')
+@pytest.mark.parametrize('in_format,points_file', [('tsv', 'simple.tsv'), ('ants', 'ants.csv'), ('minc', 'mni.tag')])
+@pytest.mark.parametrize('out_format,out_file', [('tsv', 'simple.tsv'), ('ants', 'ants.csv'), ('minc', 'mni.tag')])
+def test_ConvertPoints(points_path, in_format, points_file, out_format, out_file):
+    i = ConvertPoints(in_format=in_format, in_file=points_path / points_file, out_format=out_format)
+    r = i.run()
+    cmp(r.outputs.out_file, points_path / out_file)
