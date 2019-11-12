@@ -201,8 +201,8 @@ class Stats(CommandLine):
 class ConvertPointsInputSpec(BaseInterfaceInputSpec):
     in_file = File(exists=True,
                    desc='Input file.')
-    in_format = traits.Enum('tsv', 'ants', 'minc',
-                            desc="""Input file format.
+    out_format = traits.Enum('tsv', 'ants', 'minc',
+                             desc="""Output file format.
 
 "tsv": a TSV file with "x", "y", "z", and "index"
         columns (of types float, float, float, and int, respectively). All other
@@ -218,8 +218,6 @@ class ConvertPointsInputSpec(BaseInterfaceInputSpec):
         it is more restrictive than the linked specification. All information besides x, y, z, and label
         are ignored.
 """)
-    out_format = traits.Enum('tsv', 'ants', 'minc',
-                             desc='Output type.')
 
 
 class ConvertPointsOutputSpec(TraitedSpec):
@@ -244,21 +242,6 @@ class ConvertPoints(SimpleInterface):
         out = Path(Path(self.inputs.in_file).with_suffix(ext).name).resolve()
         if out.exists():
             raise RuntimeError(f'File {out} exists.')
-        if self.inputs.in_format == 'tsv':
-            points = Points.from_tsv(self.inputs.in_file)
-        elif self.inputs.in_format == 'ants':
-            points = Points.from_ants_csv(self.inputs.in_file)
-        elif self.inputs.in_format == 'minc':
-            points = Points.from_minc_tag(self.inputs.in_file)
-        else:
-            raise ValueError('Unsupported input format. This should be inpossible')
-        if self.inputs.out_format == 'tsv':
-            points.to_tsv(out)
-        elif self.inputs.out_format == 'ants':
-            points.to_ants_csv(out)
-        elif self.inputs.out_format == 'minc':
-            points.to_minc_tag(out)
-        else:
-            raise ValueError('Unsupported output format. This should be inpossible')
+        Points.from_file(self.inputs.in_file).to_file(out)
         self._results['out_file'] = out
         return runtime

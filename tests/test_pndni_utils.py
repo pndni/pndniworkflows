@@ -76,10 +76,10 @@ Points =
 
 
 @pytest.mark.usefixtures('cleandir')
-@pytest.mark.parametrize('in_format,points_file', [('tsv', 'simple.tsv'), ('ants', 'ants.csv'), ('minc', 'mni.tag')])
+@pytest.mark.parametrize('points_file', ['simple.tsv', 'ants.csv', 'mni.tag'])
 @pytest.mark.parametrize('out_format,out_file', [('tsv', 'simple.tsv'), ('ants', 'ants.csv'), ('minc', 'mni.tag')])
-def test_ConvertPoints(points_path, in_format, points_file, out_format, out_file):
-    i = ConvertPoints(in_format=in_format, in_file=points_path / points_file, out_format=out_format)
+def test_ConvertPoints(points_path, points_file, out_format, out_file):
+    i = ConvertPoints(in_file=points_path / points_file, out_format=out_format)
     r = i.run()
     cmp(r.outputs.out_file, points_path / out_file)
 
